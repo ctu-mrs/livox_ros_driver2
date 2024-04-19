@@ -19,6 +19,8 @@
   <arg name="UAV_NAME" default="$(env UAV_NAME)" />
   <arg name="node_prefix" default="" />
 
+
+    <!-- parameters -->
   <param name="xfer_format" value="$(arg xfer_format)"/>
   <param name="multi_topic" value="$(arg multi_topic)"/>
   <param name="data_src" value="$(arg data_src)"/>
@@ -27,27 +29,29 @@
   <param name="cmdline_str" type="string" value="$(arg bd_list)"/>
   <param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
   <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config.json"/>
-  <param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
-  <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
-  <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
+  <param name="frame_id" type="string" value="$(arg UAV_NAME)/$(arg msg_frame_id)"/>
+    <!-- <param name="frame_id" type="string" value="$(arg msg_frame_id)"/> -->
+    <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
+    <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
 
-    <!-- <group ns="$(arg UAV_NAME)"> -->
+      <!-- <group ns="$(arg UAV_NAME)"> -->
 
-      <node name="livox_lidar_publisher2" pkg="livox_ros_driver2"
-      type="livox_ros_driver2_node" required="true"
-      output="screen" args="$(arg cmdline_arg)">
+        <node name="livox_lidar_publisher2" pkg="livox_ros_driver2"
+        type="livox_ros_driver2_node" required="true"
+        output="screen" args="$(arg cmdline_arg)">
 
-        <!-- publishers -->
-      <remap from="/livox/imu" to="$(arg UAV_NAME)/livox/imu" />
-      <remap from="/livox/lidar" to="$(arg UAV_NAME)/livox/lidar" />
 
-    </node>
+          <!-- publishers -->
+        <remap from="/livox/imu" to="$(arg UAV_NAME)/livox/imu" />
+        <remap from="/livox/lidar" to="$(arg UAV_NAME)/livox/lidar" />
 
-    <!-- </group> -->
+      </node>
 
-  <group if="$(arg rosbag_enable)">
-    <node pkg="rosbag" type="record" name="record" output="screen"
-    args="-a"/>
-  </group>
+      <!-- </group> -->
 
-</launch>
+    <group if="$(arg rosbag_enable)">
+      <node pkg="rosbag" type="record" name="record" output="screen"
+      args="-a"/>
+    </group>
+
+  </launch>

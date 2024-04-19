@@ -27,7 +27,7 @@
   <param name="cmdline_str" type="string" value="$(arg bd_list)"/>
   <param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
   <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config.json"/>
-  <param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
+  <param name="frame_id" type="string" value="$(arg UAV_NAME)/$(arg msg_frame_id)"/>
   <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
   <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
 
