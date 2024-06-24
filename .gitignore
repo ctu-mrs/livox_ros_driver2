@@ -1,4 +1,9 @@
 .vscode
 build
+launch
 package.xml
+CMakeLists.xml
 __pycache__
+
+*.swp
+*.swo
