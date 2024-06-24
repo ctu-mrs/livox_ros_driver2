@@ -2,7 +2,7 @@
 build
 launch
 package.xml
-CMakeLists.xml
+CMakeLists.txt
 __pycache__
 
 *.swp
