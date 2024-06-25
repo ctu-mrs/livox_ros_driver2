@@ -28,6 +28,8 @@
 #include <csignal>
 #include <thread>
 
+#include <mrs_lib/param_loader.h>
+
 #include "include/livox_ros_driver2.h"
 #include "include/ros_headers.h"
 #include "driver_node.h"
@@ -43,12 +45,12 @@ int main(int argc, char **argv) {
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  ros::init(argc, argv, "livox_lidar_publisher");
+  ros::init(argc, argv, "livox_lidar");
 
   // ros::NodeHandle livox_node;
   livox_ros::DriverNode livox_node;
 
-  DRIVER_INFO(livox_node, "Livox Ros Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
+  DRIVER_INFO(livox_node, "Livox ROS1 Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
 
   /** Init default system parameter */
   int xfer_format = kPointCloud2Msg;
@@ -60,16 +62,18 @@ int main(int argc, char **argv) {
   bool lidar_bag = true;
   bool imu_bag   = false;
 
-  livox_node.GetNode().getParam("xfer_format", xfer_format);
-  livox_node.GetNode().getParam("multi_topic", multi_topic);
-  livox_node.GetNode().getParam("data_src", data_src);
-  livox_node.GetNode().getParam("publish_freq", publish_freq);
-  livox_node.GetNode().getParam("output_data_type", output_type);
-  livox_node.GetNode().getParam("frame_id", frame_id);
-  livox_node.GetNode().getParam("enable_lidar_bag", lidar_bag);
-  livox_node.GetNode().getParam("enable_imu_bag", imu_bag);
+  mrs_lib::ParamLoader param_loader = mrs_lib::ParamLoader(livox_node.GetNode(), "livox_lidar");
 
-  printf("data source:%u.\n", data_src);
+  param_loader.loadParam("xfer_format", xfer_format);
+  param_loader.loadParam("multi_topic", multi_topic);
+  param_loader.loadParam("data_src", data_src);
+  param_loader.loadParam("publish_freq", publish_freq);
+  param_loader.loadParam("output_data_type", output_type);
+  param_loader.loadParam("frame_id", frame_id);
+  param_loader.loadParam("enable_lidar_bag", lidar_bag);
+  param_loader.loadParam("enable_imu_bag", imu_bag);
+
+  printf("data source: %u.\n", data_src);
 
   if (publish_freq > 100.0) {
     publish_freq = 100.0;
@@ -90,7 +94,7 @@ int main(int argc, char **argv) {
     DRIVER_INFO(livox_node, "Data Source is raw lidar.");
 
     std::string user_config_path;
-    livox_node.getParam("user_config_path", user_config_path);
+    param_loader.loadParam("user_config_path", user_config_path);
     DRIVER_INFO(livox_node, "Config file : %s", user_config_path.c_str());
 
     LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
@@ -212,24 +216,3 @@ void DriverNode::ImuDataPollThread()
     status = future_.wait_for(std::chrono::microseconds(0));
   } while (status == std::future_status::timeout);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

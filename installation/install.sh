@@ -60,11 +60,11 @@ cd ${SCRIPT_PATH}/..
 if [ ${ROS_VERSION} = ${VERSION_ROS1} ]; then
     ln -sf package_ROS1.xml package.xml
     ln -sf CMakeLists_ROS1.txt CMakeLists.txt
-    ln -sf launch_ROS1 launch
+    # ln -sf launch_ROS1 launch
 elif [ ${ROS_VERSION} = ${VERSION_ROS2} ]; then
     ln -sf package_ROS2.xml package.xml
     ln -sf CMakeLists_ROS2.txt CMakeLists.txt
-    ln -sf launch_ROS2 launch
+    # ln -sf launch_ROS2 launch
 fi
 echo "[End] Installing Livox ROS Driver 2"
 echo "################################################"

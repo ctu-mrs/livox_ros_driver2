@@ -20,6 +20,7 @@
   <depend>sensor_msgs</depend>
   <depend>git</depend>
   <depend>apr</depend>
+  <depend>mrs_lib</depend>
 
   <export>
   </export>

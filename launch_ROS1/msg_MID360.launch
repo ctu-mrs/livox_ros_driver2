@@ -20,7 +20,7 @@
 
   <group ns="$(arg UAV_NAME)">
 
-      <node name="livox_lidar_publisher2" pkg="livox_ros_driver2" type="livox_ros_driver2_node" required="true" output="screen" args="$(arg cmdline_arg)">
+      <node name="livox_lidar" pkg="livox_ros_driver2" type="livox_ros_driver2_node" required="true" output="screen" args="$(arg cmdline_arg)">
 
       <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config.json"/>
       <param name="xfer_format" value="$(arg xfer_format)"/>
