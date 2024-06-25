@@ -1,13 +1,25 @@
 #!/bin/bash
 
+if [[ ! "$#" -eq 1 ]]; then
+  echo "Usage: ./install.sh [ ROS1 | ROS2 ]"
+  exit -1
+fi
+
+SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+
 # Install Livox SDK2
 echo "################################################"
 SDK_VERSION="1.2.5"
-echo "[Begin] Installing Livox SDK2 [version: ${SDK_VERSION}]"
-cd /tmp && wget https://github.com/Livox-SDK/Livox-SDK2/archive/refs/tags/v${SDK_VERSION}.tar.gz
-tar -xvf v${SDK_VERSION}.tar.gz
-mv Livox-SDK2-${SDK_VERSION} ~/git/Livox-SDK2
-cd ~/git/Livox-SDK2 && mkdir build && cd build
+echo "[Begin] Installing Livox SDK2"
+if [[ -d "${HOME}/git/Livox-SDK2" ]]; then
+  echo "~/git/Livox-SDK2 found -> using this version"
+else
+  echo "~/git/Livox-SDK2 NOT found -> downloading SDK (version: ${SDK_VERSION})"
+  cd /tmp && wget https://github.com/Livox-SDK/Livox-SDK2/archive/refs/tags/v${SDK_VERSION}.tar.gz
+  tar -xvf v${SDK_VERSION}.tar.gz
+  mv Livox-SDK2-${SDK_VERSION} ~/git/Livox-SDK2
+fi
+cd ~/git/Livox-SDK2 && mkdir -p build && cd build
 cmake .. && make -j
 sudo make install
 
@@ -44,13 +56,7 @@ fi
 echo "ROS version is: "$ROS_VERSION
 
 # substitute the files/folders: CMakeList.txt, package.xml(s)
-if [ -f package.xml ]; then
-    rm package.xml
-fi
-if [ -f CMakeLists.txt ]; then
-    rm CMakeLists.txt
-fi
-cd ..
+cd ${SCRIPT_PATH}/..
 if [ ${ROS_VERSION} = ${VERSION_ROS1} ]; then
     ln -sf package_ROS1.xml package.xml
     ln -sf CMakeLists_ROS1.txt CMakeLists.txt

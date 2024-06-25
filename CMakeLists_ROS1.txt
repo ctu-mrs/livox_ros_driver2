@@ -2,7 +2,6 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-
 #---------------------------------------------------------------------------------------
 # Start livox_ros_driver2 project
 #---------------------------------------------------------------------------------------
@@ -54,10 +53,10 @@ generate_messages(DEPENDENCIES
 
 find_package(PkgConfig)
 pkg_check_modules(APR apr-1)
-if (APR_FOUND)
-  message(${APR_INCLUDE_DIRS})
-  message(${APR_LIBRARIES})
-endif (APR_FOUND)
+# if (APR_FOUND)
+#   message(${APR_INCLUDE_DIRS})
+#   message(${APR_LIBRARIES})
+# endif (APR_FOUND)
 
 ###################################
 ## catkin specific configuration ##
@@ -74,13 +73,6 @@ catkin_package(CATKIN_DEPENDS
 )
 
 #---------------------------------------------------------------------------------------
-# Set default build to release
-#---------------------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
-endif()
-
-#---------------------------------------------------------------------------------------
 # Compiler config
 #---------------------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 14)
@@ -88,7 +80,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ## make sure the livox_lidar_sdk_static library is installed
-find_library(LIVOX_LIDAR_SDK_LIBRARY  liblivox_lidar_sdk_static.a    /usr/local/lib)
+find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_static.a /usr/local/lib)
 
 ## PCL library
 link_directories(${PCL_LIBRARY_DIRS})
@@ -172,8 +164,8 @@ install(TARGETS ${PROJECT_NAME}_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch_ROS1/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch_ROS1
+install(DIRECTORY launch_ROS1 config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 #---------------------------------------------------------------------------------------
