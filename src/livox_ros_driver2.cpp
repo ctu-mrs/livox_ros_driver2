@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
   bool imu_bag   = false;
 
   mrs_lib::ParamLoader param_loader = mrs_lib::ParamLoader(livox_node.GetNode(), "livox_lidar");
+  param_loader.setPrefix("livox_lidar/");
 
   param_loader.loadParam("xfer_format", xfer_format);
   param_loader.loadParam("multi_topic", multi_topic);
