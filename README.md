@@ -19,60 +19,37 @@ As a debugging tool, Livox ROS Driver is not recommended for mass production but
 
 ## 2. Setup
 
-### 2.1 Install Livox ROS Driver 2
+### Install Livox ROS Driver 2
 
-Replace `workspace` and `ROS_VERSION` with the path to your ROS workspace and ROS version:
+Replace `workspace` and `ROS_VERSION` with the path to your ROS workspace and your ROS version:
 ```bash
 WORKSPACE=$HOME/workspace
 ROS_VERSION=ROS1 # (ROS1, ROS2)
 
-cd ~/git && git clone https://github.com/Livox-SDK/livox_ros_driver2.git
+cd ~/git && git clone git@github.com:ctu-mrs/livox_ros_driver2.git
 cd $WORKSPACE/src && ln -sf ~/git/livox_ros_driver2 .
 cd $WORKSPACE/src/livox_ros_driver2/installation && ./install.sh $ROS_VERSION 
 ```
 
-### 2.3 Build
+### Build
 ```bash
 cd $WORKSPACE
 catkin build
 ```
 
+**Note:** do not forget to source your `WORKSPACE` in your `.*rc` file.
+
 # TODO: refactor down from here
 
-### 2.4 Run Livox ROS Driver 2:
+## 3. Launching
 
-#### For ROS:
+### Find Livox sensor IP
+TODO
+
+### 
 
 ```bash
-source ../../devel/setup.sh
 roslaunch livox_ros_driver2 [launch file]
-```
-
-in which,  
-
-* **livox_ros_driver2** : is the ROS package name of Livox ROS Driver 2;
-* **[launch file]** : is the ROS launch file you want to use; the 'launch_ROS1' folder contains several launch samples for your reference;  
-
-An rviz launch example for HAP LiDAR would be:
-
-```bash
-roslaunch livox_ros_driver2 rviz_HAP.launch
-```
-
-#### For ROS2:
-```bash
-source ../../install/setup.sh
-ros2 launch livox_ros_driver2 [launch file]
-```
-
-in which,  
-
-* **[launch file]** : is the ROS2 launch file you want to use; the 'launch_ROS2' folder contains several launch samples for your reference.
-
-A rviz launch example for HAP LiDAR would be:
-
-```bash
-ros2 launch livox_ros_driver2 rviz_HAP_launch.py
 ```
 
 ## 3. Launch file and livox_ros_driver2 internal parameter configuration instructions
@@ -325,3 +302,8 @@ Please add '/usr/local/lib' to the env LD_LIBRARY_PATH.
   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
   source ~/.bashrc
   ```
+  
+## TODO
+- [ ] Nodeletize the I/O
+- [ ] Improve param loading through `mrs_lib::ParamLoader`
+- [ ] Make the Point-LIO specific format visualizable in Rviz

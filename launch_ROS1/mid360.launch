@@ -6,10 +6,11 @@
 
   <arg name="lvx_file_path" default="livox_test.lvx"/>
   <arg name="bd_list"       default="100000000000000"/>
-  <arg name="xfer_format"   default="0"/>
+  <!-- 0: PointXYZRTLT, 1: Livox custom format (for Point-LIO), 2: PointXYZI -->
+  <arg name="xfer_format"   default="1"/>
   <arg name="multi_topic"   default="0"/>
   <arg name="data_src"      default="0"/>
-  <arg name="publish_freq"  default="100.0"/>
+  <arg name="publish_freq"  default="10.0"/>
   <arg name="output_type"   default="0"/>
   <arg name="rviz_enable"   default="false"/>
   <arg name="cmdline_arg"   default="$(arg bd_list)"/>
