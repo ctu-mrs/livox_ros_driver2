@@ -1,0 +1,46 @@
+<launch>
+
+  <!-- ======================= Parameters ======================= -->
+  <arg name="UAV_NAME" default="$(env UAV_NAME)" />
+  <arg name="frame_id" default="$(arg UAV_NAME)/livox"/>
+
+  <arg name="lvx_file_path" default="livox_test.lvx"/>
+  <arg name="bd_list"       default="100000000000000"/>
+  <!-- 0: PointXYZRTLT, 1: Livox custom format (for Point-LIO), 2: PointXYZI -->
+  <arg name="xfer_format"   default="1"/>
+  <arg name="multi_topic"   default="0"/>
+  <arg name="data_src"      default="0"/>
+  <arg name="publish_freq"  default="10.0"/>
+  <arg name="output_type"   default="0"/>
+  <arg name="rviz_enable"   default="false"/>
+  <arg name="cmdline_arg"   default="$(arg bd_list)"/>
+  <arg name="lidar_bag"     default="false"/>
+  <arg name="imu_bag"       default="false"/>
+
+  <arg name="node_prefix" default="" />
+
+  <group ns="$(arg UAV_NAME)">
+
+      <node name="$(arg node_prefix)livox_lidar" pkg="livox_ros_driver2" type="livox_ros_driver2_node" required="true" output="screen" args="$(arg cmdline_arg)">
+
+      <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config.json"/>
+      <param name="xfer_format" value="$(arg xfer_format)"/>
+      <param name="multi_topic" value="$(arg multi_topic)"/>
+      <param name="data_src" value="$(arg data_src)"/>
+      <param name="publish_freq" type="double" value="$(arg publish_freq)"/>
+      <param name="output_data_type" value="$(arg output_type)"/>
+      <param name="cmdline_str" type="string" value="$(arg bd_list)"/>
+      <param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
+      <param name="frame_id" type="string" value="$(arg frame_id)"/>
+      <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
+      <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
+
+      <!-- publishers -->
+      <remap from="/livox/imu" to="/$(arg UAV_NAME)/livox/imu" />
+      <remap from="/livox/lidar" to="/$(arg UAV_NAME)/livox/lidar" />
+
+    </node>
+
+  </group>
+
+</launch>
