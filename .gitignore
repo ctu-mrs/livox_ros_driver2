@@ -1,8 +1,5 @@
 .vscode
 build
-launch
-package.xml
-CMakeLists.txt
 __pycache__
 
 *.swp
