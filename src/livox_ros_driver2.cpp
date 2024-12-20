@@ -61,6 +61,8 @@ int main(int argc, char **argv) {
   std::string frame_id = "livox_frame";
   bool lidar_bag = true;
   bool imu_bag   = false;
+  int publish_undef = 0;
+  float radius_undef = 100.0;
 
   mrs_lib::ParamLoader param_loader = mrs_lib::ParamLoader(livox_node.GetNode(), "livox_lidar");
   param_loader.setPrefix("livox_lidar/");
@@ -73,6 +75,8 @@ int main(int argc, char **argv) {
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("enable_lidar_bag", lidar_bag);
   param_loader.loadParam("enable_imu_bag", imu_bag);
+  param_loader.loadParam("publish_undef", publish_undef);
+  param_loader.loadParam("radius_undef", radius_undef);
 
   printf("data source: %u.\n", data_src);
 
@@ -88,7 +92,7 @@ int main(int argc, char **argv) {
 
   /** Lidar data distribute control and lidar data source set */
   livox_node.lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, data_src, output_type,
-                        publish_freq, frame_id, lidar_bag, imu_bag);
+                        publish_freq, frame_id, lidar_bag, imu_bag, publish_undef, radius_undef);
   livox_node.lddc_ptr_->SetRosNode(&livox_node);
 
   if (data_src == kSourceRawLidar) {

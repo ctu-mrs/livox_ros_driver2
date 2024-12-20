@@ -73,7 +73,7 @@ class Lddc final {
  public:
 #ifdef BUILDING_ROS1
   Lddc(int format, int multi_topic, int data_src, int output_type, double frq,
-      std::string &frame_id, bool lidar_bag, bool imu_bag);
+      std::string &frame_id, bool lidar_bag, bool imu_bag, int publish_undef, float radius_undef);
 #elif defined BUILDING_ROS2
   Lddc(int format, int multi_topic, int data_src, int output_type, double frq,
       std::string &frame_id);
@@ -88,10 +88,12 @@ class Lddc final {
 
   uint8_t GetTransferFormat(void) { return transfer_format_; }
   uint8_t IsMultiTopic(void) { return use_multi_topic_; }
+  uint8_t IsPublishUndef(void) { return publish_undef_; }
   void SetRosNode(livox_ros::DriverNode *node) { cur_node_ = node; }
 
   // void SetRosPub(ros::Publisher *pub) { global_pub_ = pub; };  // NOT USED
   void SetPublishFrq(uint32_t frq) { publish_frq_ = frq; }
+  void SetUndefinedRad(uint32_t radius_undef) { radius_undef_ = radius_undef; }
 
  public:
   Lds *lds_;
@@ -107,8 +109,9 @@ class Lddc final {
   void PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index);
 
   void InitPointcloud2MsgHeader(PointCloud2& cloud);
-  void InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp);
+  void InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& undef_cloud, uint64_t& timestamp);
   void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
+  void PublishUndefPointcloud2Data(const PointCloud2& undef_cloud);
 
   void InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t index);
   void FillPointsToCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg);
@@ -129,6 +132,7 @@ class Lddc final {
 #endif
 
   PublisherPtr GetCurrentPublisher(uint8_t index);
+  PublisherPtr GetCurrentUndefPublisher();
   PublisherPtr GetCurrentImuPublisher(uint8_t index);
 
  private:
@@ -143,8 +147,11 @@ class Lddc final {
 #ifdef BUILDING_ROS1
   bool enable_lidar_bag_;
   bool enable_imu_bag_;
+  uint8_t publish_undef_;
+  float radius_undef_;
   PublisherPtr private_pub_[kMaxSourceLidar];
   PublisherPtr global_pub_;
+  PublisherPtr global_pub_undef_;
   PublisherPtr private_imu_pub_[kMaxSourceLidar];
   PublisherPtr global_imu_pub_;
   rosbag::Bag *bag_;
