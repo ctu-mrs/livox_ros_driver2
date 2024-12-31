@@ -169,9 +169,11 @@ typedef struct {
 
 typedef struct {
   uint32_t handle;
-  uint8_t lidar_type; ////refer to LivoxLidarType
+  uint8_t  lidar_type; // refer to LivoxLidarType
   uint32_t points_num;
+  uint32_t points_invalid_num;
   PointXyzlt* points;
+  PointXyzlt* points_invalid;
 } PointPacket;
 
 typedef struct {
@@ -187,7 +189,9 @@ typedef struct {
   uint32_t handle;
   uint64_t base_time;
   uint32_t points_num;
+  uint32_t points_invalid_num;
   std::vector<PointXyzlt> points;
+  std::vector<PointXyzlt> points_invalid;
 } StoragePacket;
 
 typedef struct {

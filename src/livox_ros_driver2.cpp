@@ -61,8 +61,6 @@ int main(int argc, char **argv) {
   std::string frame_id = "livox_frame";
   bool lidar_bag = true;
   bool imu_bag   = false;
-  int publish_undef = 0;
-  float radius_undef = 100.0;
 
   mrs_lib::ParamLoader param_loader = mrs_lib::ParamLoader(livox_node.GetNode(), "livox_lidar");
   param_loader.setPrefix("livox_lidar/");
@@ -75,8 +73,8 @@ int main(int argc, char **argv) {
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("enable_lidar_bag", lidar_bag);
   param_loader.loadParam("enable_imu_bag", imu_bag);
-  param_loader.loadParam("publish_undef", publish_undef);
-  param_loader.loadParam("radius_undef", radius_undef);
+  const bool invalid_publish   = param_loader.loadParam2<bool>("invalid_publish");
+  const float invalid_distance = param_loader.loadParam2<float>("invalid_distance");
 
   printf("data source: %u.\n", data_src);
 
@@ -84,15 +82,13 @@ int main(int argc, char **argv) {
     publish_freq = 100.0;
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
-  } else {
-    publish_freq = publish_freq;
-  }
+  } 
 
   livox_node.future_ = livox_node.exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
   livox_node.lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, data_src, output_type,
-                        publish_freq, frame_id, lidar_bag, imu_bag, publish_undef, radius_undef);
+                        publish_freq, frame_id, lidar_bag, imu_bag, invalid_publish, invalid_distance);
   livox_node.lddc_ptr_->SetRosNode(&livox_node);
 
   if (data_src == kSourceRawLidar) {
@@ -158,9 +154,7 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
     publish_freq = 100.0;
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
-  } else {
-    publish_freq = publish_freq;
-  }
+  } 
 
   future_ = exit_signal_.get_future();
 
@@ -198,7 +192,6 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(livox_ros::DriverNode)
-
 #endif  // defined BUILDING_ROS2
 
 

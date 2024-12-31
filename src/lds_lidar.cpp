@@ -152,6 +152,7 @@ bool LdsLidar::InitLivoxLidar() {
       std::cout << "failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
       continue;
     }
+
     LidarDevice *p_lidar = &(g_lds_ldiar->lidars_[index]);
     p_lidar->lidar_type = kLivoxLidarType;
     p_lidar->livox_config = config;

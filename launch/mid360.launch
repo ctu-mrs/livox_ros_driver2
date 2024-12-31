@@ -1,7 +1,7 @@
 <launch>
 
   <!-- ======================= Parameters ======================= -->
-  <arg name="UAV_NAME" default="uav" />
+  <arg name="UAV_NAME" default="$(env UAV_NAME)" />
   <arg name="frame_id" default="$(arg UAV_NAME)/livox"/>
 
   <arg name="lvx_file_path" default="livox_test.lvx"/>
@@ -16,8 +16,10 @@
   <arg name="cmdline_arg"   default="$(arg bd_list)"/>
   <arg name="lidar_bag"     default="false"/>
   <arg name="imu_bag"       default="false"/>
-  <arg name="publish_undef" default="1"/>
-  <arg name="radius_undef"  default="10.0"/>
+
+  <!-- Publish invalid points all at a fixed distance on a separate topic? -->
+  <arg name="invalid_publish"   default="true"/>
+  <arg name="invalid_distance"  default="100.0"/>
 
   <arg name="node_prefix" default="" />
 
@@ -36,13 +38,13 @@
       <param name="frame_id" type="string" value="$(arg frame_id)"/>
       <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
       <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
-      <param name="publish_undef" value="$(arg publish_undef)"/>
-      <param name="radius_undef" value="$(arg radius_undef)"/>
+      <param name="invalid_publish" type="bool" value="$(arg invalid_publish)"/>
+      <param name="invalid_distance" type="double" value="$(arg invalid_distance)"/>
 
       <!-- publishers -->
       <remap from="/livox/imu" to="/$(arg UAV_NAME)/livox/imu"/>
       <remap from="/livox/lidar" to="/$(arg UAV_NAME)/livox/lidar"/>
-      <remap from="/livox/lidar_undefined" to="/$(arg UAV_NAME)/livox/lidar_undefined"/>
+      <remap from="/livox/lidar_invalid" to="/$(arg UAV_NAME)/livox/lidar_invalid"/>
 
     </node>
 
