@@ -25,7 +25,8 @@
 #include "driver_node.h"
 #include "lddc.h"
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 DriverNode& DriverNode::GetNode() noexcept {
   return *this;
@@ -38,9 +39,5 @@ DriverNode::~DriverNode() {
   imudata_poll_thread_->join();
 }
 
-} // namespace livox_ros
-
-
-
-
+}  // namespace livox_ros
 

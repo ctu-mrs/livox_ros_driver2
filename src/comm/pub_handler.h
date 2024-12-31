@@ -27,24 +27,26 @@
 
 #include <atomic>
 #include <cstring>
-#include <condition_variable> // std::condition_variable
+#include <condition_variable>  // std::condition_variable
 #include <deque>
 #include <functional>
 #include <map>
 #include <memory>
-#include <mutex>              // std::mutex
+#include <mutex>  // std::mutex
 #include <thread>
 
 #include "livox_lidar_def.h"
 #include "livox_lidar_api.h"
 #include "comm/comm.h"
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 class LidarPubHandler {
- public:
+public:
   LidarPubHandler();
-  ~ LidarPubHandler() {}
+  ~LidarPubHandler() {
+  }
 
   void PointCloudProcess(RawPacket& pkt);
   void SetLidarsExtParam(LidarExtParameter param);
@@ -55,35 +57,31 @@ class LidarPubHandler {
   uint32_t GetLidarPointCloudsSize();
   uint64_t GetLidarBaseTime();
 
- private:
-  void LivoxLidarPointCloudProcess(RawPacket & pkt);
-  void ProcessCartesianHighPoint(RawPacket & pkt);
-  void ProcessCartesianLowPoint(RawPacket & pkt);
-  void ProcessSphericalPoint(RawPacket & pkt);
+private:
+  void                    LivoxLidarPointCloudProcess(RawPacket& pkt);
+  void                    ProcessCartesianHighPoint(RawPacket& pkt);
+  void                    ProcessCartesianLowPoint(RawPacket& pkt);
+  void                    ProcessSphericalPoint(RawPacket& pkt);
   std::vector<PointXyzlt> points_clouds_;
   std::vector<PointXyzlt> points_clouds_invalid_;
-  ExtParameterDetailed extrinsic_ = {
-    {0, 0, 0},
-    {
-      {1, 0, 0},
-      {0, 1, 1},
-      {0, 0, 1}
-    }
-  };
-  std::mutex mutex_;
-  std::mutex mutex_invalid_;
-  std::atomic_bool is_set_extrinsic_params_;
+  ExtParameterDetailed    extrinsic_ = {{0, 0, 0}, {{1, 0, 0}, {0, 1, 1}, {0, 0, 1}}};
+  std::mutex              mutex_;
+  std::mutex              mutex_invalid_;
+  std::atomic_bool        is_set_extrinsic_params_;
 };
-  
+
 class PubHandler {
- public:
-  using PointCloudsCallback = std::function<void(PointFrame*, void *)>;
-  using ImuDataCallback = std::function<void(ImuData*, void*)>;
-  using TimePoint = std::chrono::high_resolution_clock::time_point;
+public:
+  using PointCloudsCallback = std::function<void(PointFrame*, void*)>;
+  using ImuDataCallback     = std::function<void(ImuData*, void*)>;
+  using TimePoint           = std::chrono::high_resolution_clock::time_point;
 
-  PubHandler() {}
+  PubHandler() {
+  }
 
-  ~ PubHandler() { Uninit(); }
+  ~PubHandler() {
+    Uninit();
+  }
 
   void Uninit();
   void RequestExit();
@@ -94,48 +92,47 @@ class PubHandler {
   void ClearAllLidarsExtrinsicParams();
   void SetImuDataCallback(ImuDataCallback cb, void* client_data);
 
- private:
-  //thread to process raw data
-  void RawDataProcess();
-  std::atomic<bool> is_quit_{false};
+private:
+  // thread to process raw data
+  void                         RawDataProcess();
+  std::atomic<bool>            is_quit_{false};
   std::shared_ptr<std::thread> point_process_thread_;
-  std::mutex packet_mutex_;
-  std::condition_variable packet_condition_;
+  std::mutex                   packet_mutex_;
+  std::condition_variable      packet_condition_;
 
-  //publish callback
-  void CheckTimer(uint32_t id);
-  void PublishPointCloud();
-  static void OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t dev_type,
-                                             LivoxLidarEthernetPacket *data, void *client_data);
-  
-  static bool GetLidarId(LidarProtoType lidar_type, uint32_t handle, uint32_t& id);
+  // publish callback
+  void        CheckTimer(uint32_t id);
+  void        PublishPointCloud();
+  static void OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEthernetPacket* data, void* client_data);
+
+  static bool     GetLidarId(LidarProtoType lidar_type, uint32_t handle, uint32_t& id);
   static uint64_t GetEthPacketTimestamp(uint8_t timestamp_type, uint8_t* time_stamp, uint8_t size);
 
   PointCloudsCallback points_callback_;
-  void* pub_client_data_ = nullptr;
+  void*               pub_client_data_ = nullptr;
 
   ImuDataCallback imu_callback_;
-  void* imu_client_data_ = nullptr;
+  void*           imu_client_data_ = nullptr;
 
   PointFrame frame_;
 
   std::deque<RawPacket> raw_packet_queue_;
 
-  //pub config
-  uint64_t publish_interval_ = 100000000; //100 ms
-  uint64_t publish_interval_tolerance_ = 100000000; //100 ms
-  uint64_t publish_interval_ms_ = 100; //100 ms
+  // pub config
+  uint64_t  publish_interval_           = 100000000;  // 100 ms
+  uint64_t  publish_interval_tolerance_ = 100000000;  // 100 ms
+  uint64_t  publish_interval_ms_        = 100;        // 100 ms
   TimePoint last_pub_time_;
 
   std::map<uint32_t, std::unique_ptr<LidarPubHandler>> lidar_process_handlers_;
-  std::map<uint32_t, std::vector<PointXyzlt>> points_;
-  std::map<uint32_t, std::vector<PointXyzlt>> points_invalid_;
-  std::map<uint32_t, LidarExtParameter> lidar_extrinsics_;
-  static std::atomic<bool> is_timestamp_sync_;
-  uint16_t lidar_listen_id_ = 0;
+  std::map<uint32_t, std::vector<PointXyzlt>>          points_;
+  std::map<uint32_t, std::vector<PointXyzlt>>          points_invalid_;
+  std::map<uint32_t, LidarExtParameter>                lidar_extrinsics_;
+  static std::atomic<bool>                             is_timestamp_sync_;
+  uint16_t                                             lidar_listen_id_ = 0;
 };
 
-PubHandler &pub_handler();
+PubHandler& pub_handler();
 
 }  // namespace livox_ros
 

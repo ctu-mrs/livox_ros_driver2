@@ -26,7 +26,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 /** Common function --------------------------------------------------------- */
 bool IsFilePathValid(const char *path_str) {
@@ -66,5 +67,5 @@ std::string ReplacePeriodByUnderline(std::string str) {
   return str;
 }
 
-} // namespace livox_ros
+}  // namespace livox_ros
 

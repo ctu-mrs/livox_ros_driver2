@@ -27,7 +27,8 @@
 
 #include "ldq.h"
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 /* for pointcloud queue process */
 bool InitQueue(LidarDataQueue *queue, uint32_t queue_size) {
@@ -54,8 +55,8 @@ bool InitQueue(LidarDataQueue *queue, uint32_t queue_size) {
 
   queue->rd_idx = 0;
   queue->wr_idx = 0;
-  queue->size = queue_size;
-  queue->mask = queue_size - 1;
+  queue->size   = queue_size;
+  queue->mask   = queue_size - 1;
 
   return true;
 }
@@ -72,8 +73,8 @@ bool DeInitQueue(LidarDataQueue *queue) {
 
   queue->rd_idx = 0;
   queue->wr_idx = 0;
-  queue->size = 0;
-  queue->mask = 0;
+  queue->size   = 0;
+  queue->mask   = 0;
 
   return true;
 }
@@ -139,10 +140,10 @@ bool QueueIsEmpty(LidarDataQueue *queue) {
 }
 
 uint32_t QueuePushAny(LidarDataQueue *queue, uint8_t *data, const uint64_t base_time) {
-  uint32_t wr_idx = queue->wr_idx & queue->mask;
-  PointPacket* lidar_point_data = reinterpret_cast<PointPacket*>(data);
-  queue->storage_packet[wr_idx].base_time = base_time;
-  queue->storage_packet[wr_idx].points_num = lidar_point_data->points_num;
+  uint32_t     wr_idx                              = queue->wr_idx & queue->mask;
+  PointPacket *lidar_point_data                    = reinterpret_cast<PointPacket *>(data);
+  queue->storage_packet[wr_idx].base_time          = base_time;
+  queue->storage_packet[wr_idx].points_num         = lidar_point_data->points_num;
   queue->storage_packet[wr_idx].points_invalid_num = lidar_point_data->points_invalid_num;
 
   queue->storage_packet[wr_idx].points.clear();
