@@ -119,8 +119,7 @@ private:
 
   void InitPointcloud2MsgHeader(PointCloud2& cloud);
   void InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& cloud_invalid, uint64_t& timestamp);
-  void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
-  void PublishPointcloud2DataInvalid(const PointCloud2& cloud_invalid);
+  void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud, const bool valid);
 
   void InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t index);
   void FillPointsToCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg);
@@ -140,8 +139,7 @@ private:
   PublisherPtr CreatePublisher(uint8_t msg_type, std::string& topic_name, uint32_t queue_size);
 #endif
 
-  PublisherPtr GetCurrentPublisher(uint8_t index);
-  PublisherPtr GetCurrentPublisherInvalid();
+  PublisherPtr GetCurrentPublisher(uint8_t index, const bool valid);
   PublisherPtr GetCurrentImuPublisher(uint8_t index);
 
 private:
@@ -159,6 +157,7 @@ private:
   bool         invalid_publish_;
   float        invalid_distance_;
   PublisherPtr private_pub_[kMaxSourceLidar];
+  PublisherPtr private_pub_invalid_[kMaxSourceLidar];
   PublisherPtr global_pub_;
   PublisherPtr global_pub_invalid_;
   PublisherPtr private_imu_pub_[kMaxSourceLidar];

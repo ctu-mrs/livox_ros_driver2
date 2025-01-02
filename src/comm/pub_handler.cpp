@@ -417,6 +417,7 @@ void LidarPubHandler::ProcessCartesianLowPoint(RawPacket& pkt) {
     point.line        = i % pkt.line_num;
     point.tag         = raw[i].tag;
     point.offset_time = pkt.time_stamp + i * pkt.point_interval;
+
     std::lock_guard<std::mutex> lock(mutex_);
     points_clouds_.push_back(point);
   }
