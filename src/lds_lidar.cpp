@@ -74,7 +74,7 @@ void LdsLidar::ResetLdsLidar(void) {
 }
 
 
-bool LdsLidar::InitLdsLidar(const std::string& path_name) {
+bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool& invalid_publish) {
   if (is_initialized_) {
     printf("Lds is already inited!\n");
     return false;
@@ -85,6 +85,7 @@ bool LdsLidar::InitLdsLidar(const std::string& path_name) {
   }
 
   path_ = path_name;
+  invalid_publish_ = invalid_publish;
   if (!InitLidars()) {
     return false;
   }
@@ -159,7 +160,10 @@ bool LdsLidar::InitLivoxLidar() {
     LidarExtParameter lidar_param;
     lidar_param.handle     = config.handle;
     lidar_param.lidar_type = kLivoxLidarType;
-    if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
+    if (invalid_publish_ && config.pcl_data_type != kLivoxLidarSphericalCoordinateData) {
+      std::cout << "Failed to init publishing of invalid points: pcl_data_type must be set to Spherical Coordinate (3)!" << std::endl;
+      return false;
+    } else if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
       // temporary resolution
       lidar_param.param.roll  = config.extrinsic_param.roll;
       lidar_param.param.pitch = config.extrinsic_param.pitch;

@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
     LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
     livox_node.lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-    if ((read_lidar->InitLdsLidar(user_config_path))) {
+    if ((read_lidar->InitLdsLidar(user_config_path, invalid_publish))) {
       DRIVER_INFO(livox_node, "Init lds lidar successfully!");
     } else {
       DRIVER_ERROR(livox_node, "Init lds lidar failed!");
