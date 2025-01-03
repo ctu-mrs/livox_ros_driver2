@@ -1,4 +1,3 @@
-//
 // The MIT License (MIT)
 //
 // Copyright (c) 2022 Livox. All rights reserved.
@@ -39,7 +38,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#endif // WIN32
+#endif  // WIN32
 
 #include "comm/comm.h"
 #include "comm/pub_handler.h"
@@ -52,31 +51,30 @@
 
 using namespace std;
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 /** Const varible ------------------------------------------------------------*/
 /** For callback use only */
-LdsLidar *g_lds_ldiar = nullptr;
+LdsLidar* g_lds_ldiar = nullptr;
 
 /** Global function for common use -------------------------------------------*/
 
 /** Lds lidar function -------------------------------------------------------*/
-LdsLidar::LdsLidar(double publish_freq)
-    : Lds(publish_freq, kSourceRawLidar), 
-      auto_connect_mode_(true),
-      whitelist_count_(0),
-      is_initialized_(false) {
+LdsLidar::LdsLidar(double publish_freq) : Lds(publish_freq, kSourceRawLidar), auto_connect_mode_(true), whitelist_count_(0), is_initialized_(false) {
   memset(broadcast_code_whitelist_, 0, sizeof(broadcast_code_whitelist_));
   ResetLdsLidar();
 }
 
-LdsLidar::~LdsLidar() {}
+LdsLidar::~LdsLidar() {
+}
 
-void LdsLidar::ResetLdsLidar(void) { ResetLds(kSourceRawLidar); }
+void LdsLidar::ResetLdsLidar(void) {
+  ResetLds(kSourceRawLidar);
+}
 
 
-
-bool LdsLidar::InitLdsLidar(const std::string& path_name) {
+bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool invalid_publish) {
   if (is_initialized_) {
     printf("Lds is already inited!\n");
     return false;
@@ -86,7 +84,8 @@ bool LdsLidar::InitLdsLidar(const std::string& path_name) {
     g_lds_ldiar = this;
   }
 
-  path_ = path_name;
+  path_            = path_name;
+  invalid_publish_ = invalid_publish;
   if (!InitLidars()) {
     return false;
   }
@@ -132,34 +131,41 @@ bool LdsLidar::InitLivoxLidar() {
 #endif
 
   // parse user config
-  LivoxLidarConfigParser parser(path_);
+  LivoxLidarConfigParser            parser(path_);
   std::vector<UserLivoxLidarConfig> user_configs;
   if (!parser.Parse(user_configs)) {
-    std::cout << "failed to parse user-defined config" << std::endl;
+    std::cerr << "failed to parse user-defined config" << std::endl;
   }
 
   // SDK initialization
   if (!LivoxLidarSdkInit(path_.c_str())) {
-    std::cout << "Failed to init livox lidar sdk." << std::endl;
+    std::cerr << "Failed to init livox lidar sdk." << std::endl;
     return false;
   }
 
   // fill in lidar devices
   for (auto& config : user_configs) {
     uint8_t index = 0;
-    int8_t ret = g_lds_ldiar->cache_index_.GetFreeIndex(kLivoxLidarType, config.handle, index);
+    int8_t  ret   = g_lds_ldiar->cache_index_.GetFreeIndex(kLivoxLidarType, config.handle, index);
     if (ret != 0) {
-      std::cout << "failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
+      std::cerr << "Failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
       continue;
     }
-    LidarDevice *p_lidar = &(g_lds_ldiar->lidars_[index]);
-    p_lidar->lidar_type = kLivoxLidarType;
+
+    LidarDevice* p_lidar  = &(g_lds_ldiar->lidars_[index]);
+    p_lidar->lidar_type   = kLivoxLidarType;
     p_lidar->livox_config = config;
-    p_lidar->handle = config.handle;
+    p_lidar->handle       = config.handle;
 
     LidarExtParameter lidar_param;
-    lidar_param.handle = config.handle;
+    lidar_param.handle     = config.handle;
     lidar_param.lidar_type = kLivoxLidarType;
+
+    if (invalid_publish_ && config.pcl_data_type != kLivoxLidarSphericalCoordinateData) {
+      std::cerr << "Failed to init publishing of invalid points: pcl_data_type must be set to 3 (kLivoxLidarSphericalCoordinateData)!" << std::endl;
+      return false;
+    }
+
     if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
       // temporary resolution
       lidar_param.param.roll  = config.extrinsic_param.roll;
@@ -209,6 +215,8 @@ int LdsLidar::DeInitLdsLidar(void) {
   return 0;
 }
 
-void LdsLidar::PrepareExit(void) { DeInitLdsLidar(); }
+void LdsLidar::PrepareExit(void) {
+  DeInitLdsLidar();
+}
 
 }  // namespace livox_ros

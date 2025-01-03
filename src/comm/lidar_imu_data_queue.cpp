@@ -24,12 +24,13 @@
 
 #include "lidar_imu_data_queue.h"
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 void LidarImuDataQueue::Push(ImuData* imu_data) {
   ImuData data;
   data.lidar_type = imu_data->lidar_type;
-  data.handle = imu_data->handle;
+  data.handle     = imu_data->handle;
   data.time_stamp = imu_data->time_stamp;
 
   data.gyro_x = imu_data->gyro_x;
@@ -67,4 +68,4 @@ void LidarImuDataQueue::Clear() {
   }
 }
 
-} // namespace livox_ros
+}  // namespace livox_ros

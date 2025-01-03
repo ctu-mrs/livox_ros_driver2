@@ -107,3 +107,6 @@ For `.json` configurations and mulit-sensor connections, please refer to the [or
 - [ ] Nodeletize the I/O
 - [ ] Improve param loading through `mrs_lib::ParamLoader`
 - [ ] Make the Point-LIO specific format visualizable in Rviz
+- [ ] `pub_handler.cpp`: profile if in-for-loop mutexing in `ProcessSphericalPoint()` is slow and potentially replace
+- [ ] invalid points: make it work for other point types (custom, XYZI)
+- [X] invalid points: invalidity check works only in spherical coordinate reading -> add check/warning for this to warn the user

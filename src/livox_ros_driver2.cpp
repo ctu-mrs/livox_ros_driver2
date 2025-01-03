@@ -53,14 +53,14 @@ int main(int argc, char **argv) {
   DRIVER_INFO(livox_node, "Livox ROS1 Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
 
   /** Init default system parameter */
-  int xfer_format = kPointCloud2Msg;
-  int multi_topic = 0;
-  int data_src = kSourceRawLidar;
-  double publish_freq  = 10.0; /* Hz */
-  int output_type      = kOutputToRos;
-  std::string frame_id = "livox_frame";
-  bool lidar_bag = true;
-  bool imu_bag   = false;
+  int         xfer_format  = kPointCloud2Msg;
+  int         multi_topic  = 0;
+  int         data_src     = kSourceRawLidar;
+  double      publish_freq = 10.0; /* Hz */
+  int         output_type  = kOutputToRos;
+  std::string frame_id     = "livox_frame";
+  bool        lidar_bag    = true;
+  bool        imu_bag      = false;
 
   mrs_lib::ParamLoader param_loader = mrs_lib::ParamLoader(livox_node.GetNode(), "livox_lidar");
   param_loader.setPrefix("livox_lidar/");
@@ -73,6 +73,8 @@ int main(int argc, char **argv) {
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("enable_lidar_bag", lidar_bag);
   param_loader.loadParam("enable_imu_bag", imu_bag);
+  const bool  invalid_publish  = param_loader.loadParam2<bool>("invalid_publish");
+  const float invalid_distance = param_loader.loadParam2<float>("invalid_distance");
 
   printf("data source: %u.\n", data_src);
 
@@ -80,15 +82,13 @@ int main(int argc, char **argv) {
     publish_freq = 100.0;
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
-  } else {
-    publish_freq = publish_freq;
   }
 
   livox_node.future_ = livox_node.exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  livox_node.lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, data_src, output_type,
-                        publish_freq, frame_id, lidar_bag, imu_bag);
+  livox_node.lddc_ptr_ =
+      std::make_unique<Lddc>(xfer_format, multi_topic, data_src, output_type, publish_freq, frame_id, lidar_bag, imu_bag, invalid_publish, invalid_distance);
   livox_node.lddc_ptr_->SetRosNode(&livox_node);
 
   if (data_src == kSourceRawLidar) {
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
     LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
     livox_node.lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-    if ((read_lidar->InitLdsLidar(user_config_path))) {
+    if ((read_lidar->InitLdsLidar(user_config_path, invalid_publish))) {
       DRIVER_INFO(livox_node, "Init lds lidar successfully!");
     } else {
       DRIVER_ERROR(livox_node, "Init lds lidar failed!");
@@ -111,8 +111,10 @@ int main(int argc, char **argv) {
   }
 
   livox_node.pointclouddata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::PointCloudDataPollThread, &livox_node);
-  livox_node.imudata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, &livox_node);
-  while (ros::ok()) { usleep(10000); }
+  livox_node.imudata_poll_thread_        = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, &livox_node);
+  while (ros::ok()) {
+    usleep(10000);
+  }
 
   return 0;
 }
@@ -120,17 +122,15 @@ int main(int argc, char **argv) {
 #elif defined BUILDING_ROS2
 namespace livox_ros
 {
-DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
-: Node("livox_driver_node", node_options)
-{
+DriverNode::DriverNode(const rclcpp::NodeOptions &node_options) : Node("livox_driver_node", node_options) {
   DRIVER_INFO(*this, "Livox Ros Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
 
   /** Init default system parameter */
-  int xfer_format = kPointCloud2Msg;
-  int multi_topic = 0;
-  int data_src = kSourceRawLidar;
-  double publish_freq = 10.0; /* Hz */
-  int output_type = kOutputToRos;
+  int         xfer_format  = kPointCloud2Msg;
+  int         multi_topic  = 0;
+  int         data_src     = kSourceRawLidar;
+  double      publish_freq = 10.0; /* Hz */
+  int         output_type  = kOutputToRos;
   std::string frame_id;
 
   this->declare_parameter("xfer_format", xfer_format);
@@ -154,8 +154,6 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
     publish_freq = 100.0;
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
-  } else {
-    publish_freq = publish_freq;
   }
 
   future_ = exit_signal_.get_future();
@@ -187,19 +185,17 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
   }
 
   pointclouddata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::PointCloudDataPollThread, this);
-  imudata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, this);
+  imudata_poll_thread_        = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, this);
 }
 
 }  // namespace livox_ros
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(livox_ros::DriverNode)
-
 #endif  // defined BUILDING_ROS2
 
 
-void DriverNode::PointCloudDataPollThread()
-{
+void DriverNode::PointCloudDataPollThread() {
   std::future_status status;
   std::this_thread::sleep_for(std::chrono::seconds(3));
   do {
@@ -208,8 +204,7 @@ void DriverNode::PointCloudDataPollThread()
   } while (status == std::future_status::timeout);
 }
 
-void DriverNode::ImuDataPollThread()
-{
+void DriverNode::ImuDataPollThread() {
   std::future_status status;
   std::this_thread::sleep_for(std::chrono::seconds(3));
   do {

@@ -51,4 +51,4 @@
 #define DRIVER_ERROR_EXTRA(node, EXTRA, ...) ROS_ERROR_##EXTRA(__VA_ARGS__)
 #define DRIVER_FATAL_EXTRA(node, EXTRA, ...) ROS_FATAL_##EXTRA(__VA_ARGS__)
 
-#endif // ROS1_HEADERS_H_
+#endif  // ROS1_HEADERS_H_

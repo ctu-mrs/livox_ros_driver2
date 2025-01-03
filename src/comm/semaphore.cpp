@@ -24,7 +24,8 @@
 
 #include "semaphore.h"
 
-namespace livox_ros {
+namespace livox_ros
+{
 
 void Semaphore::Signal() {
   std::unique_lock<std::mutex> lock(mutex_);
@@ -38,4 +39,4 @@ void Semaphore::Wait() {
   --count_;
 }
 
-} // namespace livox_ros
+}  // namespace livox_ros

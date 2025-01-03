@@ -28,9 +28,11 @@
 #include <cstdio>
 #include <arpa/inet.h>
 
-namespace livox_ros {
+namespace livox_ros
+{
 
-ParseCfgFile::ParseCfgFile(const std::string& path) : path_(path) {}
+ParseCfgFile::ParseCfgFile(const std::string& path) : path_(path) {
+}
 
 bool ParseCfgFile::ParseSummaryInfo(LidarSummaryInfo& lidar_summary_info) {
   FILE* raw_file = std::fopen(path_.c_str(), "rb");
@@ -39,9 +41,9 @@ bool ParseCfgFile::ParseSummaryInfo(LidarSummaryInfo& lidar_summary_info) {
     return false;
   }
 
-  char read_buffer[kMaxBufferSize];
+  char                      read_buffer[kMaxBufferSize];
   rapidjson::FileReadStream config_file(raw_file, read_buffer, sizeof(read_buffer));
-  rapidjson::Document doc;
+  rapidjson::Document       doc;
   do {
     if (doc.ParseStream(config_file).HasParseError()) {
       break;
@@ -49,7 +51,7 @@ bool ParseCfgFile::ParseSummaryInfo(LidarSummaryInfo& lidar_summary_info) {
     if (!doc.HasMember("lidar_summary_info") || !doc["lidar_summary_info"].IsObject()) {
       break;
     }
-    const rapidjson::Value &object = doc["lidar_summary_info"];
+    const rapidjson::Value& object = doc["lidar_summary_info"];
     if (!object.HasMember("lidar_type") || !object["lidar_type"].IsUint()) {
       break;
     }
@@ -63,5 +65,5 @@ bool ParseCfgFile::ParseSummaryInfo(LidarSummaryInfo& lidar_summary_info) {
   return false;
 }
 
-} // namespace livox_ros
+}  // namespace livox_ros
 
