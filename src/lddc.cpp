@@ -376,14 +376,19 @@ void Lddc::InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, Poin
 
 void Lddc::PublishPointcloud2Data(const uint8_t index, const uint64_t timestamp, const PointCloud2& cloud, const bool valid) {
 #ifdef BUILDING_ROS1
-  PublisherPtr publisher_ptr = Lddc::GetCurrentPublisher(index, valid);
+  const PublisherPtr publisher_ptr = Lddc::GetCurrentPublisher(index, valid);
 #elif defined BUILDING_ROS2
   Publisher<PointCloud2>::SharedPtr publisher_ptr = std::dynamic_pointer_cast<Publisher<PointCloud2>>(GetCurrentPublisher(index));
 #endif
 
   if (kOutputToRos == output_type_) {
-    publisher_ptr->publish(cloud);
+
+    if (publisher_ptr->getNumSubscribers() > 0) {
+      publisher_ptr->publish(cloud);
+    }
+
   } else {
+
 #ifdef BUILDING_ROS1
     if (bag_ && enable_lidar_bag_) {
       bag_->write(publisher_ptr->getTopic(), ros::Time(timestamp / 1000000000.0), cloud);
