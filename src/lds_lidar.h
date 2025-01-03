@@ -50,7 +50,7 @@ public:
     return &lds_lidar;
   }
 
-  bool InitLdsLidar(const std::string &path_name, const bool &invalid_publish);
+  bool InitLdsLidar(const std::string &path_name, const bool invalid_publish);
   bool Start();
 
   int DeInitLdsLidar(void);
