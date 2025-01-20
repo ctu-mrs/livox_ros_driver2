@@ -215,12 +215,13 @@ void Lddc::PublishPointcloud2(LidarDataQueue* queue, uint8_t index) {
     }
 
     PointCloud2 cloud;
-    PointCloud2 cloud_invalid;
     uint64_t    timestamp = 0;
-    InitPointcloud2Msg(pkg, cloud, cloud_invalid, timestamp);
+    InitPointcloud2Msg(pkg, cloud, timestamp);
     PublishPointcloud2Data(index, timestamp, cloud, true);
 
     if (invalid_publish_) {
+      PointCloud2 cloud_invalid;
+      InitInvalidPointcloud2Msg(pkg, cloud_invalid, timestamp);
       PublishPointcloud2Data(index, timestamp, cloud_invalid, false);
     }
   }
@@ -239,6 +240,13 @@ void Lddc::PublishCustomPointcloud(LidarDataQueue* queue, uint8_t index) {
     InitCustomMsg(livox_msg, pkg, index);
     FillPointsToCustomMsg(livox_msg, pkg);
     PublishCustomPointData(livox_msg, index);
+
+    if (invalid_publish_) {
+      PointCloud2 cloud_invalid;
+      uint64_t    timestamp = 0;
+      InitInvalidPointcloud2Msg(pkg, cloud_invalid, timestamp);
+      PublishPointcloud2Data(index, timestamp, cloud_invalid, false);
+    }
   }
 }
 
@@ -266,6 +274,12 @@ void Lddc::PublishPclMsg(LidarDataQueue* queue, uint8_t index) {
     InitPclMsg(pkg, cloud, timestamp);
     FillPointsToPclMsg(pkg, cloud);
     PublishPclData(index, timestamp, cloud);
+
+    if (invalid_publish_) {
+      PointCloud2 cloud_invalid;
+      InitInvalidPointcloud2Msg(pkg, cloud_invalid, timestamp);
+      PublishPointcloud2Data(index, timestamp, cloud_invalid, false);
+    }
   }
   return;
 }
@@ -306,7 +320,7 @@ void Lddc::InitPointcloud2MsgHeader(PointCloud2& cloud) {
   cloud.point_step         = sizeof(LivoxPointXyzrtlt);
 }
 
-void Lddc::InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& cloud_invalid, uint64_t& timestamp) {
+void Lddc::InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp) {
   InitPointcloud2MsgHeader(cloud);
 
   cloud.width        = pkg.points_num;
@@ -341,37 +355,46 @@ void Lddc::InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, Poin
   const auto pt_size = cloud.point_step;
   cloud.data.resize(pkg.points_num * pt_size);
   memcpy(cloud.data.data(), points.data(), pkg.points_num * pt_size);
+}
 
-  if (invalid_publish_) {
+void Lddc::InitInvalidPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud_invalid, uint64_t& timestamp) {
+  InitPointcloud2MsgHeader(cloud_invalid);
 
-    // setup metadata
-    InitPointcloud2MsgHeader(cloud_invalid);
-    cloud_invalid.width        = pkg.points_invalid_num;
-    cloud_invalid.row_step     = cloud_invalid.width * cloud_invalid.point_step;
-    cloud_invalid.is_bigendian = cloud.is_bigendian;
-    cloud_invalid.is_dense     = cloud.is_dense;
-    cloud_invalid.header.stamp = cloud.header.stamp;
+  cloud_invalid.width        = pkg.points_invalid_num;
+  cloud_invalid.row_step     = cloud_invalid.width * cloud_invalid.point_step;
+  cloud_invalid.is_bigendian = false;
+  cloud_invalid.is_dense     = true;
 
-    // resize
-    std::vector<LivoxPointXyzrtlt> points_invalid;
-    points_invalid.resize(pkg.points_invalid_num);
-
-    // fill
-    for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
-      auto& pt        = points_invalid.at(i);
-      pt.x            = invalid_distance_ * pkg.points_invalid[i].x;
-      pt.y            = invalid_distance_ * pkg.points_invalid[i].y;
-      pt.z            = invalid_distance_ * pkg.points_invalid[i].z;
-      pt.reflectivity = pkg.points_invalid[i].intensity;
-      pt.tag          = pkg.points_invalid[i].tag;
-      pt.line         = pkg.points_invalid[i].line;
-      pt.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
-    }
-
-    // copy to ROS msg
-    cloud_invalid.data.resize(pkg.points_invalid_num * pt_size);
-    memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * pt_size);
+  if (!pkg.points.empty()) {
+    timestamp = pkg.base_time;
   }
+
+#ifdef BUILDING_ROS1
+  cloud_invalid.header.stamp = ros::Time(timestamp / 1000000000.0);
+#elif defined BUILDING_ROS2
+  cloud_invalid.header.stamp                              = rclcpp::Time(timestamp);
+#endif
+
+  // resize
+  std::vector<LivoxPointXyzrtlt> points_invalid;
+  points_invalid.resize(pkg.points_invalid_num);
+
+  // fill
+  for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
+    auto& pt        = points_invalid.at(i);
+    pt.x            = invalid_distance_ * pkg.points_invalid[i].x;
+    pt.y            = invalid_distance_ * pkg.points_invalid[i].y;
+    pt.z            = invalid_distance_ * pkg.points_invalid[i].z;
+    pt.reflectivity = pkg.points_invalid[i].intensity;
+    pt.tag          = pkg.points_invalid[i].tag;
+    pt.line         = pkg.points_invalid[i].line;
+    pt.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
+  }
+
+  // copy to ROS msg
+  const auto pt_size = cloud_invalid.point_step;
+  cloud_invalid.data.resize(pkg.points_invalid_num * pt_size);
+  memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * pt_size);
 }
 
 void Lddc::PublishPointcloud2Data(const uint8_t index, const uint64_t timestamp, const PointCloud2& cloud, const bool valid) {
@@ -627,7 +650,10 @@ PublisherPtr Lddc::GetCurrentPublisher(uint8_t index, const bool valid) {
     }
 
     *pub = new ros::Publisher;
-    if (kPointCloud2Msg == transfer_format_) {
+    if (!valid) {
+      **pub = cur_node_->GetNode().advertise<sensor_msgs::PointCloud2>(name, queue_size);
+      DRIVER_INFO(*cur_node_, "%s publish use PointCloud2 format, set ROS publisher queue size %d", name.c_str(), queue_size);
+    } else if (kPointCloud2Msg == transfer_format_) {
       **pub = cur_node_->GetNode().advertise<sensor_msgs::PointCloud2>(name, queue_size);
       DRIVER_INFO(*cur_node_, "%s publish use PointCloud2 format, set ROS publisher queue size %d", name.c_str(), queue_size);
     } else if (kLivoxCustomMsg == transfer_format_) {
