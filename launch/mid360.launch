@@ -12,7 +12,6 @@
   <arg name="data_src"      default="0"/>
   <arg name="publish_freq"  default="10.0"/>
   <arg name="output_type"   default="0"/>
-  <arg name="rviz_enable"   default="false"/>
   <arg name="cmdline_arg"   default="$(arg bd_list)"/>
   <arg name="lidar_bag"     default="false"/>
   <arg name="imu_bag"       default="false"/>

@@ -74,7 +74,7 @@ void LdsLidar::ResetLdsLidar(void) {
 }
 
 
-bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool& invalid_publish) {
+bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool invalid_publish) {
   if (is_initialized_) {
     printf("Lds is already inited!\n");
     return false;
@@ -84,7 +84,7 @@ bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool& invalid_pu
     g_lds_ldiar = this;
   }
 
-  path_ = path_name;
+  path_            = path_name;
   invalid_publish_ = invalid_publish;
   if (!InitLidars()) {
     return false;
@@ -134,12 +134,12 @@ bool LdsLidar::InitLivoxLidar() {
   LivoxLidarConfigParser            parser(path_);
   std::vector<UserLivoxLidarConfig> user_configs;
   if (!parser.Parse(user_configs)) {
-    std::cout << "failed to parse user-defined config" << std::endl;
+    std::cerr << "failed to parse user-defined config" << std::endl;
   }
 
   // SDK initialization
   if (!LivoxLidarSdkInit(path_.c_str())) {
-    std::cout << "Failed to init livox lidar sdk." << std::endl;
+    std::cerr << "Failed to init livox lidar sdk." << std::endl;
     return false;
   }
 
@@ -148,7 +148,7 @@ bool LdsLidar::InitLivoxLidar() {
     uint8_t index = 0;
     int8_t  ret   = g_lds_ldiar->cache_index_.GetFreeIndex(kLivoxLidarType, config.handle, index);
     if (ret != 0) {
-      std::cout << "failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
+      std::cerr << "Failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
       continue;
     }
 
@@ -160,10 +160,13 @@ bool LdsLidar::InitLivoxLidar() {
     LidarExtParameter lidar_param;
     lidar_param.handle     = config.handle;
     lidar_param.lidar_type = kLivoxLidarType;
+
     if (invalid_publish_ && config.pcl_data_type != kLivoxLidarSphericalCoordinateData) {
-      std::cout << "Failed to init publishing of invalid points: pcl_data_type must be set to Spherical Coordinate (3)!" << std::endl;
+      std::cerr << "Failed to init publishing of invalid points: pcl_data_type must be set to 3 (kLivoxLidarSphericalCoordinateData)!" << std::endl;
       return false;
-    } else if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
+    }
+
+    if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
       // temporary resolution
       lidar_param.param.roll  = config.extrinsic_param.roll;
       lidar_param.param.pitch = config.extrinsic_param.pitch;
