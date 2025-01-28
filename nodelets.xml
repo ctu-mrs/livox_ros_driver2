@@ -1,0 +1,7 @@
+<library path="lib/libLivoxROSDriver2">
+  <class name="livox_ros/LivoxROSDriver2" type="livox_ros::LivoxROSDriver2" base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet for Livox Ros driver2.
+    </description>
+  </class>
+</library>

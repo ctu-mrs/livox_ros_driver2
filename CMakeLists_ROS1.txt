@@ -35,6 +35,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
   pcl_ros
   mrs_lib
+  nodelet
 )
 
 ## Find pcl lib
@@ -59,6 +60,10 @@ pkg_check_modules(APR apr-1)
 #   message(${APR_LIBRARIES})
 # endif (APR_FOUND)
 
+SET(LIBRARIES
+  LivoxROSDriver2
+)
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -72,6 +77,8 @@ catkin_package(CATKIN_DEPENDS
   roscpp rospy std_msgs message_runtime
   pcl_ros
   mrs_lib
+  nodelet
+  LIBRARIES ${LIBRARIES}
 )
 
 #---------------------------------------------------------------------------------------
@@ -91,51 +98,39 @@ add_definitions(${PCL_DEFINITIONS})
 #---------------------------------------------------------------------------------------
 # generate excutable and add libraries
 #---------------------------------------------------------------------------------------
-add_executable(${PROJECT_NAME}_node
-  ""
-)
 
-#---------------------------------------------------------------------------------------
-# precompile macro and compile option
-#---------------------------------------------------------------------------------------
-target_compile_options(${PROJECT_NAME}_node
-  PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wall>
-)
-
-#---------------------------------------------------------------------------------------
-# add projects that depend on
-#---------------------------------------------------------------------------------------
-add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
-
-#---------------------------------------------------------------------------------------
-# source file
-#---------------------------------------------------------------------------------------
-target_sources(${PROJECT_NAME}_node
-  PRIVATE
+add_library(LivoxROSDriver2
+  src/livox_ros_driver2.cpp
   src/driver_node.cpp
   src/lds.cpp
   src/lds_lidar.cpp
   src/lddc.cpp
   src/livox_ros_driver2.cpp
-
   src/comm/comm.cpp
   src/comm/ldq.cpp
   src/comm/semaphore.cpp
   src/comm/lidar_imu_data_queue.cpp
   src/comm/cache_index.cpp
   src/comm/pub_handler.cpp
-
   src/parse_cfg_file/parse_cfg_file.cpp
   src/parse_cfg_file/parse_livox_lidar_cfg.cpp
-
   src/call_back/lidar_common_callback.cpp
   src/call_back/livox_lidar_callback.cpp
 )
 
-#---------------------------------------------------------------------------------------
-# include file
-#---------------------------------------------------------------------------------------
-target_include_directories(${PROJECT_NAME}_node
+# add_dependencies(LivoxROSDriver2 
+
+# )
+
+target_link_libraries(LivoxROSDriver2 
+${LIVOX_LIDAR_SDK_LIBRARY}
+${Boost_LIBRARY}
+${catkin_LIBRARIES}
+${PCL_LIBRARIES}
+${APR_LIBRARIES}
+)
+
+target_include_directories(LivoxROSDriver2
   PUBLIC
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
@@ -144,31 +139,108 @@ target_include_directories(${PROJECT_NAME}_node
   src
 )
 
-#---------------------------------------------------------------------------------------
-# link libraries
-#---------------------------------------------------------------------------------------
-target_link_libraries(${PROJECT_NAME}_node
-  ${LIVOX_LIDAR_SDK_LIBRARY}
-  ${Boost_LIBRARY}
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-  ${APR_LIBRARIES}
-)
+# #---------------------------------------------------------------------------------------
+# # precompile macro and compile option
+# #---------------------------------------------------------------------------------------
+# # target_compile_options(${PROJECT_NAME}_node
+# #   PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wall>
+# # )
+
+# #---------------------------------------------------------------------------------------
+# # add projects that depend on
+# #---------------------------------------------------------------------------------------
+# add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
+
+# #---------------------------------------------------------------------------------------
+# # source file
+# #---------------------------------------------------------------------------------------
+# target_sources(${PROJECT_NAME}_node
+#   PRIVATE
+#   src/driver_node.cpp
+#   src/lds.cpp
+#   src/lds_lidar.cpp
+#   src/lddc.cpp
+#   src/livox_ros_driver2.cpp
+
+#   src/comm/comm.cpp
+#   src/comm/ldq.cpp
+#   src/comm/semaphore.cpp
+#   src/comm/lidar_imu_data_queue.cpp
+#   src/comm/cache_index.cpp
+#   src/comm/pub_handler.cpp
+
+#   src/parse_cfg_file/parse_cfg_file.cpp
+#   src/parse_cfg_file/parse_livox_lidar_cfg.cpp
+
+#   src/call_back/lidar_common_callback.cpp
+#   src/call_back/livox_lidar_callback.cpp
+# )
+
+# #---------------------------------------------------------------------------------------
+# # include file
+# #---------------------------------------------------------------------------------------
+# include_directories(
+#   ${catkin_INCLUDE_DIRS}
+#   src/include
+# )
+
+# target_include_directories(${PROJECT_NAME}_node
+#   PUBLIC
+#   ${catkin_INCLUDE_DIRS}
+#   ${PCL_INCLUDE_DIRS}
+#   ${APR_INCLUDE_DIRS}
+#   3rdparty
+#   src
+# )
+
+# #---------------------------------------------------------------------------------------
+# # link libraries
+# #---------------------------------------------------------------------------------------
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${LIVOX_LIDAR_SDK_LIBRARY}
+#   ${Boost_LIBRARY}
+#   ${catkin_LIBRARIES}
+#   ${PCL_LIBRARIES}
+#   ${APR_LIBRARIES}
+# )
 
 
 #---------------------------------------------------------------------------------------
 # Install
 #---------------------------------------------------------------------------------------
-
-install(TARGETS ${PROJECT_NAME}_node
+install(TARGETS ${LIBRARIES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+  )
 
-install(DIRECTORY launch_ROS1 config
+install(DIRECTORY launch config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+  )
+
+install(FILES nodelets.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+
+# install(TARGETS ${PROJECT_NAME}_node
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+# install(TARGETS ${LIBRARIES}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
+
+# install(DIRECTORY launch_ROS1 config
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
+
+# install(FILES nodelets.xml
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
 
 #---------------------------------------------------------------------------------------
 # end of CMakeList.txt

@@ -39,5 +39,25 @@ DriverNode::~DriverNode() {
   imudata_poll_thread_->join();
 }
 
+
+void DriverNode::PointCloudDataPollThread() {
+  std::future_status status;
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  do {
+    lddc_ptr_->DistributePointCloudData();
+    status = future_.wait_for(std::chrono::microseconds(0));
+  } while (status == std::future_status::timeout);
+}
+
+void DriverNode::ImuDataPollThread() {
+  std::future_status status;
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  do {
+    lddc_ptr_->DistributeImuData();
+    status = future_.wait_for(std::chrono::microseconds(0));
+  } while (status == std::future_status::timeout);
+}
+
+
 }  // namespace livox_ros
 

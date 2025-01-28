@@ -28,24 +28,39 @@
 #include <csignal>
 #include <thread>
 
-#include <mrs_lib/param_loader.h>
-
 #include "include/livox_ros_driver2.h"
 #include "include/ros_headers.h"
 #include "driver_node.h"
 #include "lddc.h"
 #include "lds_lidar.h"
 
-using namespace livox_ros;
+#include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
+#include <mrs_lib/param_loader.h>
 
+// using namespace livox_ros;
+namespace livox_ros
+{
 #ifdef BUILDING_ROS1
-int main(int argc, char **argv) {
+
+class LivoxROSDriver2 : public nodelet::Nodelet {
+  
+  public:
+
+    virtual void onInit();
+};
+
+void LivoxROSDriver2::onInit() {
+
+  ros::NodeHandle nh = nodelet::Nodelet::getMTPrivateNodeHandle();
+  ros::Time::waitForValid();
+
   /** Ros related */
   if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug)) {
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  ros::init(argc, argv, "livox_lidar");
+  //ros::init(argc, argv, "livox_lidar");
 
   // ros::NodeHandle livox_node;
   livox_ros::DriverNode livox_node;
@@ -112,11 +127,12 @@ int main(int argc, char **argv) {
 
   livox_node.pointclouddata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::PointCloudDataPollThread, &livox_node);
   livox_node.imudata_poll_thread_        = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, &livox_node);
-  while (ros::ok()) {
-    usleep(10000);
-  }
+  // while (ros::ok()) {
+  //   usleep(10000);
+  // }
 
-  return 0;
+  //return 0;
+  NODELET_INFO_ONCE("[LivoxROSDriver2] Nodelet initialized");
 }
 
 #elif defined BUILDING_ROS2
@@ -195,20 +211,5 @@ RCLCPP_COMPONENTS_REGISTER_NODE(livox_ros::DriverNode)
 #endif  // defined BUILDING_ROS2
 
 
-void DriverNode::PointCloudDataPollThread() {
-  std::future_status status;
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  do {
-    lddc_ptr_->DistributePointCloudData();
-    status = future_.wait_for(std::chrono::microseconds(0));
-  } while (status == std::future_status::timeout);
-}
-
-void DriverNode::ImuDataPollThread() {
-  std::future_status status;
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  do {
-    lddc_ptr_->DistributeImuData();
-    status = future_.wait_for(std::chrono::microseconds(0));
-  } while (status == std::future_status::timeout);
-}
+}   // namespace livox_ros
+PLUGINLIB_EXPORT_CLASS(livox_ros::LivoxROSDriver2, nodelet::Nodelet);
