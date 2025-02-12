@@ -29,7 +29,9 @@ else
   mv Livox-SDK2-${SDK_VERSION} ~/git/Livox-SDK2
 fi
 cd ~/git/Livox-SDK2 && mkdir -p build && cd build
-cmake .. && make -j
+# cmake .. 
+cmake -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -fPIC" -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fPIC" -DBUILD_SHARED_LIBS=ON .. # flags needed for .so build
+make -j
 sudo make install
 
 # How to remove it:
