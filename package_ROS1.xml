@@ -21,7 +21,9 @@
   <depend>git</depend>
   <depend>apr</depend>
   <depend>mrs_lib</depend>
+  <depend>nodelet</depend>
 
   <export>
+    <nodelet plugin="${prefix}/nodelets.xml" />
   </export>
 </package>
