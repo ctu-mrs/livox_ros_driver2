@@ -1,4 +1,5 @@
 #!/bin/bash
+
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 ROS_DISTRO="ROS1"
@@ -20,17 +21,24 @@ echo "Installing for ROS version: $ROS_DISTRO"
 echo "################################################"
 SDK_VERSION="1.2.5"
 echo "[Begin] Installing Livox SDK2"
-if [[ -d "${HOME}/git/Livox-SDK2" ]]; then
-  echo "~/git/Livox-SDK2 found -> using this version"
+if [[ -d "$SCRIPT_PATH/../3rdparty/Livox-SDK2" ]]; then
+  echo "$SCRIPT_PATH/../3rdparty/Livox-SDK2 found -> using this version"
 else
-  echo "~/git/Livox-SDK2 NOT found -> downloading SDK (version: ${SDK_VERSION})"
+  echo "$SCRIPT_PATH/../3rdparty/Livox-SDK2 NOT found -> downloading SDK (version: ${SDK_VERSION})"
   cd /tmp && wget https://github.com/Livox-SDK/Livox-SDK2/archive/refs/tags/v${SDK_VERSION}.tar.gz
-  tar -xvf v${SDK_VERSION}.tar.gz
-  mv Livox-SDK2-${SDK_VERSION} ~/git/Livox-SDK2
+  tar -xf v${SDK_VERSION}.tar.gz
+  mv Livox-SDK2-${SDK_VERSION} $SCRIPT_PATH/../3rdparty/Livox-SDK2
 fi
-cd ~/git/Livox-SDK2 && mkdir -p build && cd build
+
+cd $SCRIPT_PATH/../3rdparty/Livox-SDK2 && mkdir -p build && cd build
 cmake .. && make -j
-sudo make install
+
+sudo make install 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo -e "\e[1;31mFailed make. Livox driver will not be available\e[0m"
+  exit 1
+fi
+
 
 # How to remove it:
 # sudo rm -rf /usr/local/lib/liblivox_lidar_sdk_*
