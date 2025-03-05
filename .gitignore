@@ -4,4 +4,5 @@ __pycache__
 
 *.swp
 *.swo
-3rdparty/Livox-SDK2
+3rdparty/Livox-SDK2-v1.2.5/build
+3rdparty/install
