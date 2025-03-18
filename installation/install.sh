@@ -21,7 +21,10 @@ echo "Installing for ROS version: $ROS_DISTRO"
 echo "Installing Livox SDK2"
 echo "################################################"
 
-cd $SCRIPT_PATH/../3rdparty/Livox-SDK2-v1.2.5 && rm -r build && mkdir -p build && cd build
+cd $SCRIPT_PATH/../3rdparty/Livox-SDK2-v1.2.5 \
+ && mkdir -p build \
+ && cd build
+
 cmake \
   -DCMAKE_C_COMPILER=/usr/bin/gcc-9 \
   -DCMAKE_CXX_COMPILER=/usr/bin/g++-9 \
