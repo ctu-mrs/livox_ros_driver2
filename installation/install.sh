@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+SCRIPT_PATH="$( cd "$(dirname "$0")" || exit ; pwd -P )"
 
 ROS_DISTRO="ROS1"
 if [[ "$#" -eq 1 ]]; then
@@ -18,38 +18,25 @@ fi
 echo "Installing for ROS version: $ROS_DISTRO"
 
 # Install Livox SDK2
-echo "################################################"
-SDK_VERSION="1.2.5"
-echo "[Begin] Installing Livox SDK2"
-if [[ -d "$SCRIPT_PATH/../3rdparty/Livox-SDK2" ]]; then
-  echo "$SCRIPT_PATH/../3rdparty/Livox-SDK2 found -> using this version"
-else
-  echo "$SCRIPT_PATH/../3rdparty/Livox-SDK2 NOT found -> downloading SDK (version: ${SDK_VERSION})"
-  cd /tmp && wget https://github.com/Livox-SDK/Livox-SDK2/archive/refs/tags/v${SDK_VERSION}.tar.gz
-  tar -xf v${SDK_VERSION}.tar.gz
-  mv Livox-SDK2-${SDK_VERSION} $SCRIPT_PATH/../3rdparty/Livox-SDK2
-fi
-
-cd $SCRIPT_PATH/../3rdparty/Livox-SDK2 && mkdir -p build && cd build
-cmake .. && make -j
-
-sudo make install 2>/dev/null
-if [ $? -ne 0 ]; then
-  echo -e "\e[1;31mFailed make. Livox driver will not be available\e[0m"
-  exit 1
-fi
-
-
-# How to remove it:
-# sudo rm -rf /usr/local/lib/liblivox_lidar_sdk_*
-# sudo rm -rf /usr/local/include/livox_lidar_*
-
-echo "[End] Installing Livox SDK2"
+echo "Installing Livox SDK2"
 echo "################################################"
 
-# Install Livox ROS Driver 2
+cd $SCRIPT_PATH/../3rdparty/Livox-SDK2-v1.2.5 \
+ && mkdir -p build \
+ && cd build
+
+cmake \
+  -DCMAKE_C_COMPILER=/usr/bin/gcc-9 \
+  -DCMAKE_CXX_COMPILER=/usr/bin/g++-9 \
+  -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -fPIC" \
+  -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fPIC" \
+  -DCMAKE_INSTALL_PREFIX="$SCRIPT_PATH/../3rdparty/install" \
+  -DBUILD_SHARED_LIBS=ON .. \
+  && make -j clean install
+
 echo "################################################"
-echo "[Begin] Installing Livox ROS Driver 2"
+
+echo "Linking the correct CMakeLists.txt and package.xml for $ROS_DISTRO"
 
 # substitute the files/folders: CMakeList.txt, package.xml(s)
 cd ${SCRIPT_PATH}/..
@@ -62,5 +49,4 @@ elif [[ ${ROS_DISTRO} == "ROS2" ]]; then
     ln -sf CMakeLists_ROS2.txt CMakeLists.txt
     # ln -sf launch_ROS2 launch
 fi
-echo "[End] Installing Livox ROS Driver 2"
 echo "################################################"
