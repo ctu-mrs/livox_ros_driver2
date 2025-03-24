@@ -14,18 +14,19 @@ message(STATUS "livox_ros_driver2 version: ${LIVOX_ROS_DRIVER2_VERSION}")
 #---------------------------------------------------------------------------------------
 add_definitions(-DBUILDING_ROS1)
 
-#---------------------------------------------------------------------------------------
-# find package and the dependecy
-#---------------------------------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# make sure the livox_lidar_sdk_static library is installed (call ./installation/install.sh)
+find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_static.a ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/install/lib)
+
 find_package(Boost 1.54 REQUIRED COMPONENTS
   system
   thread
   chrono
 )
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
@@ -45,7 +46,6 @@ find_package(PCL REQUIRED)
 add_message_files(FILES
   CustomPoint.msg
   CustomMsg.msg
-#   Message2.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -60,62 +60,45 @@ pkg_check_modules(APR apr-1)
 #   message(${APR_LIBRARIES})
 # endif (APR_FOUND)
 
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects als    o need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also n    eed
-catkin_package(CATKIN_DEPENDS
-  roscpp rospy std_msgs message_runtime
-  pcl_ros
-  mrs_lib
+set(LIBRARIES
   LivoxPCLtoPCL2
 )
 
-#---------------------------------------------------------------------------------------
-# Compiler config
-#---------------------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+catkin_package(
+  INCLUDE_DIRS src/include
+  LIBRARIES ${LIBRARIES}
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime pcl_ros mrs_lib
+)
 
-## make sure the livox_lidar_sdk_static library is installed
-find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_static.a ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/install/lib)
+include_directories(
+  src/include
+  ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+)
 
-## PCL library
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+## | ------------------------ Libraries ----------------------- |
 
 # LivoxPCLtoPCL2
 
 add_library(LivoxPCLtoPCL2
   src/livox_to_pcl2.cpp
-  )
+)
 
 add_dependencies(LivoxPCLtoPCL2
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
-  ${PROJECT_NAME}_gencfg
-  )
+)
 
-target_link_libraries(
-  LivoxPCLtoPCL2
+target_link_libraries(LivoxPCLtoPCL2
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
-  ${Eigen_LIBRARIES}
-  )
+)
 
-target_include_directories(LivoxPCLtoPCL2 SYSTEM PRIVATE
-  ${PCL_INCLUDE_DIRS}
-  )
+## | ----------------------- Executables ---------------------- |
 
-#---------------------------------------------------------------------------------------
-# generate excutable and add libraries
-#---------------------------------------------------------------------------------------
 add_executable(${PROJECT_NAME}_node
   ""
 )
@@ -200,6 +183,3 @@ install(FILES nodelets.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-#---------------------------------------------------------------------------------------
-# end of CMakeList.txt
-#---------------------------------------------------------------------------------------

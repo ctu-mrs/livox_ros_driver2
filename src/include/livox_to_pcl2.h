@@ -2,8 +2,10 @@
 
 /* includes //{ */
 
+#include <nodelet/nodelet.h>
 #include <mrs_lib/subscribe_handler.h>
 
+#include <sensor_msgs/PointCloud2.h>
 #include <livox_ros_driver2/CustomMsg.h>
 
 //}

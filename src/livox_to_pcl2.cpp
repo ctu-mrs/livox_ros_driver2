@@ -31,16 +31,18 @@ void LivoxPCLtoPCL2::lidarLivoxCallback(const livox_ros_driver2::CustomMsg::Cons
     return;
   }
 
-  const sensor_msgs::PointCloud2::Ptr cloud_ros = boost::make_shared<sensor_msgs::PointCloud2>();
+  if (_pub_lidar_pcl2.getNumSubscribers() > 0) {
 
-  convertLivoxPCLtoPCL2(cloud_ros, msg);
+    const sensor_msgs::PointCloud2::Ptr cloud_ros = boost::make_shared<sensor_msgs::PointCloud2>();
+    convertLivoxPCLtoPCL2(cloud_ros, msg);
 
-  _pub_lidar_pcl2.publish(cloud_ros);
+    _pub_lidar_pcl2.publish(cloud_ros);
+  }
 }
 //}
 
-/*//{ ConvertLivoxPCLtoPCL2() */
-void convertLivoxPCLtoPCL2(const sensor_msgs::PointCloud2::Ptr &cloud, const livox_ros_driver2::CustomMsg::ConstPtr &livox_msg) {
+/*//{ convertLivoxPCLtoPCL2() */
+void convertLivoxPCLtoPCL2(const sensor_msgs::PointCloud2::Ptr& cloud, const livox_ros_driver2::CustomMsg::ConstPtr& livox_msg) {
   cloud->header = livox_msg->header;
   cloud->fields.resize(6);
 
@@ -74,30 +76,30 @@ void convertLivoxPCLtoPCL2(const sensor_msgs::PointCloud2::Ptr &cloud, const liv
   cloud->fields[5].count    = 1;
   cloud->fields[5].datatype = sensor_msgs::PointField::UINT8;
 
-  cloud->point_step         = 18;
-  cloud->row_step           = cloud->point_step * livox_msg->point_num;
+  cloud->point_step = 18;
+  cloud->row_step   = cloud->point_step * livox_msg->point_num;
   cloud->data.resize(cloud->row_step);
 
   uint8_t* livox_data_ptr = cloud->data.data();
-    for (const auto& point : livox_msg->points)
-    {
-        *(reinterpret_cast<float*>(livox_data_ptr + 0)) = point.x;
-        *(reinterpret_cast<float*>(livox_data_ptr + 4)) = point.y;
-        *(reinterpret_cast<float*>(livox_data_ptr + 8)) = point.z;
-        *(reinterpret_cast<float*>(livox_data_ptr + 12)) = static_cast<float>(point.reflectivity);
-        *(livox_data_ptr + 16) = point.tag;
-        *(livox_data_ptr + 17) = point.line;
+  for (const auto& point : livox_msg->points) {
+    *(reinterpret_cast<float*>(livox_data_ptr + 0))  = point.x;
+    *(reinterpret_cast<float*>(livox_data_ptr + 4))  = point.y;
+    *(reinterpret_cast<float*>(livox_data_ptr + 8))  = point.z;
+    *(reinterpret_cast<float*>(livox_data_ptr + 12)) = static_cast<float>(point.reflectivity);
+    *(livox_data_ptr + 16)                           = point.tag;
+    *(livox_data_ptr + 17)                           = point.line;
 
-        livox_data_ptr += cloud->point_step;
-    }
+    livox_data_ptr += cloud->point_step;
+  }
 
-    cloud->width = livox_msg->point_num;
-    cloud->height = 1;
-    cloud->is_bigendian = false;
-    cloud->is_dense = true;
+  cloud->width        = livox_msg->point_num;
+  cloud->height       = 1;
+  cloud->is_bigendian = false;
+  cloud->is_dense     = true;
 }
 /*//}*/
 
 }  // namespace livox_ros
 
+#include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(livox_ros::LivoxPCLtoPCL2, nodelet::Nodelet);
