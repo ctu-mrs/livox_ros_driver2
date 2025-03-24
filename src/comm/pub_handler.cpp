@@ -427,6 +427,12 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
   LivoxLidarSpherPoint* raw     = (LivoxLidarSpherPoint*)pkt.raw_data.data();
   const double          rad2deg = PI / (100.0 * 180.0);
 
+  std::vector<PointXyzlt> valid_points_buffer_;
+  std::vector<PointXyzlt> invalid_points_buffer_;
+
+  valid_points_buffer_.reserve(pkt.point_num);
+  invalid_points_buffer_.reserve(pkt.point_num);
+
   for (size_t i = 0; i < pkt.point_num; i++) {
 
     double       radius = raw[i].depth * 0.001;
@@ -459,15 +465,23 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
     pt.tag         = raw[i].tag;
     pt.offset_time = pkt.time_stamp + i * pkt.point_interval;
 
-    // TODO: might be not idea to lock for every point (too many mutex locks/unlocks)
     if (pt_invalid) {
-      std::lock_guard<std::mutex> lock(mutex_invalid_);
-      points_clouds_invalid_.push_back(pt);
+      invalid_points_buffer_.push_back(pt);
     } else {
-      std::lock_guard<std::mutex> lock(mutex_);
-      points_clouds_.push_back(pt);
+      valid_points_buffer_.push_back(pt);
     }
   }
+
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    points_clouds_.insert(points_clouds_.end(), valid_points_buffer_.begin(), valid_points_buffer_.end());
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(mutex_invalid_);
+    points_clouds_invalid_.insert(points_clouds_invalid_.end(), invalid_points_buffer_.begin(), invalid_points_buffer_.end());
+  }
+
 }
 
 }  // namespace livox_ros
