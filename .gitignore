@@ -2,6 +2,9 @@
 build
 __pycache__
 
+CMakeLists.txt
+package.xml
+
 *.swp
 *.swo
 3rdparty/Livox-SDK2-v1.2.5/build
