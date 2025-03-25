@@ -42,7 +42,7 @@ void LivoxPCLtoPCL2::lidarLivoxCallback(const livox_ros_driver2::CustomMsg::Cons
 //}
 
 /*//{ convertLivoxPCLtoPCL2() */
-void convertLivoxPCLtoPCL2(const sensor_msgs::PointCloud2::Ptr& cloud, const livox_ros_driver2::CustomMsg::ConstPtr& livox_msg) {
+void LivoxPCLtoPCL2::convertLivoxPCLtoPCL2(const sensor_msgs::PointCloud2::Ptr& cloud, const livox_ros_driver2::CustomMsg::ConstPtr& livox_msg) {
   cloud->header = livox_msg->header;
   cloud->fields.resize(6);
 
