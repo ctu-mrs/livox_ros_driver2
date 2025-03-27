@@ -4,6 +4,7 @@
   <arg name="UAV_NAME" default="$(env UAV_NAME)" />
   <arg name="frame_id" default="$(arg UAV_NAME)/livox"/>
 
+  <arg name="config"        default="$(find livox_ros_driver2)/config/MID360_config.json"/>
   <arg name="lvx_file_path" default="livox_test.lvx"/>
   <arg name="bd_list"       default="100000000000000"/>
   <!-- 0: PointXYZRTLT, 1: Livox custom format (for Point-LIO), 2: PointXYZI -->
@@ -26,7 +27,7 @@
 
       <node name="$(arg node_prefix)livox_lidar" pkg="livox_ros_driver2" type="livox_ros_driver2_node" required="true" output="screen" args="$(arg cmdline_arg)">
 
-      <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config.json"/>
+      <param name="user_config_path" type="string" value="$(arg config)"/>
       <param name="xfer_format" value="$(arg xfer_format)"/>
       <param name="multi_topic" value="$(arg multi_topic)"/>
       <param name="data_src" value="$(arg data_src)"/>

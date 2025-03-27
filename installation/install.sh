@@ -21,18 +21,25 @@ echo "Installing for ROS version: $ROS_DISTRO"
 echo "Installing Livox SDK2"
 echo "################################################"
 
-cd $SCRIPT_PATH/../3rdparty/Livox-SDK2-v1.2.5 \
- && mkdir -p build \
- && cd build
+INSTALL_PATH="$SCRIPT_PATH/../3rdparty/install"
+if [ ! -d "$INSTALL_PATH" ]; then
 
-cmake \
-  -DCMAKE_C_COMPILER=/usr/bin/gcc-9 \
-  -DCMAKE_CXX_COMPILER=/usr/bin/g++-9 \
-  -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -fPIC" \
-  -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fPIC" \
-  -DCMAKE_INSTALL_PREFIX="$SCRIPT_PATH/../3rdparty/install" \
-  -DBUILD_SHARED_LIBS=ON .. \
-  && make -j clean install
+  cd $SCRIPT_PATH/../3rdparty/Livox-SDK2-v1.2.5 \
+   && mkdir -p build \
+   && cd build
+
+  cmake \
+    -DCMAKE_C_COMPILER=/usr/bin/gcc-9 \
+    -DCMAKE_CXX_COMPILER=/usr/bin/g++-9 \
+    -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -fPIC" \
+    -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fPIC" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PATH" \
+    -DBUILD_SHARED_LIBS=ON .. \
+    && make -j clean install
+
+else
+  echo "Livox SDK already built -> skipping"
+fi
 
 echo "################################################"
 

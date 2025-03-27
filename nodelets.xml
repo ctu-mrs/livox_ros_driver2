@@ -1,0 +1,7 @@
+<library path="lib/libLivoxPCLtoPCL2">
+  <class name="livox_ros/LivoxPCLtoPCL2" type="livox_ros::LivoxPCLtoPCL2" base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet for livox pointcloud to ROS pointcloud2 conversion.
+    </description>
+  </class>
+</library>
