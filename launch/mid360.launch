@@ -21,6 +21,10 @@
   <arg name="invalid_publish"   default="true"/>
   <arg name="invalid_distance"  default="100.0"/>
 
+  <arg name="filter/min_range"           default="0.2"/>
+  <arg name="filter/intensity/radius"    default="0.0"/>
+  <arg name="filter/intensity/min_value" default="3"/>
+
   <arg name="node_prefix" default="" />
 
   <group ns="$(arg UAV_NAME)">
@@ -40,6 +44,10 @@
       <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
       <param name="invalid_publish" type="bool" value="$(arg invalid_publish)"/>
       <param name="invalid_distance" type="double" value="$(arg invalid_distance)"/>
+
+      <param name="filter/range/radius"        type="double" value="$(arg filter/min_range)"/>
+      <param name="filter/intensity/radius"    type="double" value="$(arg filter/intensity/radius)"/>
+      <param name="filter/intensity/min_value" type="int"    value="$(arg filter/intensity/min_value)"/>
 
       <!-- publishers -->
       <remap from="/livox/imu" to="/$(arg UAV_NAME)/livox/imu"/>

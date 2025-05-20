@@ -74,7 +74,7 @@ void LdsLidar::ResetLdsLidar(void) {
 }
 
 
-bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool invalid_publish) {
+bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool invalid_publish, ParamsHandler& params) {
   if (is_initialized_) {
     printf("Lds is already inited!\n");
     return false;
@@ -86,6 +86,8 @@ bool LdsLidar::InitLdsLidar(const std::string& path_name, const bool invalid_pub
 
   path_            = path_name;
   invalid_publish_ = invalid_publish;
+  filters_params_  = params;
+
   if (!InitLidars()) {
     return false;
   }
@@ -183,6 +185,7 @@ bool LdsLidar::InitLivoxLidar() {
       lidar_param.param.z     = config.extrinsic_param.z;
     }
     pub_handler().AddLidarsExtParam(lidar_param);
+    pub_handler().AddParamsHandler(filters_params_);
   }
 
   SetLivoxLidarInfoChangeCallback(LivoxLidarCallback::LidarInfoChangeCallback, g_lds_ldiar);
@@ -193,7 +196,7 @@ void LdsLidar::SetLidarPubHandle() {
   pub_handler().SetPointCloudsCallback(LidarCommonCallback::OnLidarPointClounCb, g_lds_ldiar);
   pub_handler().SetImuDataCallback(LidarCommonCallback::LidarImuDataCallback, g_lds_ldiar);
 
-  double publish_freq = Lds::GetLdsFrequency();
+  const double publish_freq = Lds::GetLdsFrequency();
   pub_handler().SetPointCloudConfig(publish_freq);
 }
 

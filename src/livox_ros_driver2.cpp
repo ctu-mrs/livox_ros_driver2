@@ -76,6 +76,11 @@ int main(int argc, char **argv) {
   const bool  invalid_publish  = param_loader.loadParam2<bool>("invalid_publish");
   const float invalid_distance = param_loader.loadParam2<float>("invalid_distance");
 
+  ParamsHandler params;
+  param_loader.loadParam("filter/range/radius", params.range_min);
+  param_loader.loadParam("filter/intensity/radius", params.intensity_range);
+  param_loader.loadParam("filter/intensity/min_value", params.intensity_min_value);
+
   printf("data source: %u.\n", data_src);
 
   if (publish_freq > 100.0) {
@@ -83,6 +88,7 @@ int main(int argc, char **argv) {
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
   }
+
 
   livox_node.future_ = livox_node.exit_signal_.get_future();
 
@@ -101,7 +107,7 @@ int main(int argc, char **argv) {
     LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
     livox_node.lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-    if ((read_lidar->InitLdsLidar(user_config_path, invalid_publish))) {
+    if ((read_lidar->InitLdsLidar(user_config_path, invalid_publish, params))) {
       DRIVER_INFO(livox_node, "Init lds lidar successfully!");
     } else {
       DRIVER_ERROR(livox_node, "Init lds lidar failed!");

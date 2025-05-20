@@ -50,6 +50,7 @@ public:
 
   void PointCloudProcess(RawPacket& pkt);
   void SetLidarsExtParam(LidarExtParameter param);
+  void SetParamsHandler(const ParamsHandler &params);
   void GetLidarPointClouds(std::vector<PointXyzlt>& points_clouds);
   void GetLidarPointCloudsInvalid(std::vector<PointXyzlt>& points_clouds);
 
@@ -68,6 +69,8 @@ private:
   std::mutex              mutex_;
   std::mutex              mutex_invalid_;
   std::atomic_bool        is_set_extrinsic_params_;
+
+  ParamsHandler filters_params_;
 };
 
 class PubHandler {
@@ -89,6 +92,7 @@ public:
   void SetPointCloudConfig(const double publish_freq);
   void SetPointCloudsCallback(PointCloudsCallback cb, void* client_data);
   void AddLidarsExtParam(LidarExtParameter& extrinsic_params);
+  void AddParamsHandler(const ParamsHandler &params);
   void ClearAllLidarsExtrinsicParams();
   void SetImuDataCallback(ImuDataCallback cb, void* client_data);
 
@@ -130,6 +134,7 @@ private:
   std::map<uint32_t, LidarExtParameter>                lidar_extrinsics_;
   static std::atomic<bool>                             is_timestamp_sync_;
   uint16_t                                             lidar_listen_id_ = 0;
+
 };
 
 PubHandler& pub_handler();

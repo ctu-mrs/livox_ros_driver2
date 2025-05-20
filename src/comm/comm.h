@@ -320,6 +320,13 @@ typedef struct
   UserLivoxLidarConfig livox_config;
 } LidarDevice;
 
+struct ParamsHandler
+{
+  float range_min;
+  float intensity_range;
+  int   intensity_min_value;
+};
+
 constexpr uint32_t kMaxProductType       = 10;
 constexpr uint32_t kDeviceTypeLidarMid70 = 6;
 

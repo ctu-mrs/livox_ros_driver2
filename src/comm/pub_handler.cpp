@@ -84,6 +84,12 @@ void PubHandler::AddLidarsExtParam(LidarExtParameter& lidar_param) {
   lidar_extrinsics_[id] = lidar_param;
 }
 
+void PubHandler::AddParamsHandler(const ParamsHandler &params) {
+  for (const auto& [_, lidar_pub_handler] : lidar_process_handlers_) {
+    lidar_pub_handler->SetParamsHandler(params);
+  }
+}
+
 void PubHandler::ClearAllLidarsExtrinsicParams() {
   std::unique_lock<std::mutex> lock(packet_mutex_);
   lidar_extrinsics_.clear();
@@ -372,6 +378,10 @@ void LidarPubHandler::SetLidarsExtParam(LidarExtParameter lidar_param) {
   is_set_extrinsic_params_ = true;
 }
 
+void LidarPubHandler::SetParamsHandler(const ParamsHandler &params) {
+  filters_params_ = params;
+}
+
 void LidarPubHandler::ProcessCartesianHighPoint(RawPacket& pkt) {
   LivoxLidarCartesianHighRawPoint* raw   = (LivoxLidarCartesianHighRawPoint*)pkt.raw_data.data();
   PointXyzlt                       point = {};
@@ -435,14 +445,27 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
 
   for (size_t i = 0; i < pkt.point_num; i++) {
 
-    double       radius = raw[i].depth * 0.001;
+    double       radius = std::fabs(raw[i].depth * 0.001);
     const double theta  = raw[i].theta * rad2deg;
     const double phi    = raw[i].phi * rad2deg;
 
-    const bool pt_invalid = std::fabs(radius) < 0.001f;
+    const bool pt_invalid = radius < 0.001f;
 
     if (pt_invalid) {
+
       radius = 1.0;
+
+    } else {
+
+      // skip frame measurements
+      if (radius < filters_params_.range_min) {
+        continue;
+      }
+
+      // skip dust detections
+      if (radius < filters_params_.intensity_range && raw[i].reflectivity < filters_params_.intensity_min_value) {
+        continue;
+      }
     }
 
     const double src_x = radius * sin(theta) * cos(phi);
@@ -481,7 +504,6 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
     std::lock_guard<std::mutex> lock(mutex_invalid_);
     points_clouds_invalid_.insert(points_clouds_invalid_.end(), invalid_points_buffer_.begin(), invalid_points_buffer_.end());
   }
-
 }
 
 }  // namespace livox_ros
