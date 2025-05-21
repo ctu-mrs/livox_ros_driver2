@@ -77,17 +77,12 @@ void PubHandler::SetImuDataCallback(ImuDataCallback cb, void* client_data) {
   imu_callback_    = cb;
 }
 
-void PubHandler::AddLidarsExtParam(LidarExtParameter& lidar_param) {
+void PubHandler::AddLidarsParams(LidarExtParameter& params_extr, const ParamsHandler &params_hand) {
   std::unique_lock<std::mutex> lock(packet_mutex_);
   uint32_t                     id = 0;
-  GetLidarId(lidar_param.lidar_type, lidar_param.handle, id);
-  lidar_extrinsics_[id] = lidar_param;
-}
-
-void PubHandler::AddParamsHandler(const ParamsHandler &params) {
-  for (const auto& [_, lidar_pub_handler] : lidar_process_handlers_) {
-    lidar_pub_handler->SetParamsHandler(params);
-  }
+  GetLidarId(params_extr.lidar_type, params_extr.handle, id);
+  lidar_extrinsics_[id] = params_extr;
+  lidar_params_[id]     = params_hand;
 }
 
 void PubHandler::ClearAllLidarsExtrinsicParams() {
@@ -255,6 +250,7 @@ void PubHandler::RawDataProcess() {
     GetLidarId(raw_data.lidar_type, raw_data.handle, id);
     if (lidar_process_handlers_.find(id) == lidar_process_handlers_.end()) {
       lidar_process_handlers_[id].reset(new LidarPubHandler());
+      lidar_process_handlers_[id]->SetParamsHandler(lidar_params_[id]);
     }
     auto& process_handler = lidar_process_handlers_[id];
     if (lidar_extrinsics_.find(id) != lidar_extrinsics_.end()) {
@@ -398,10 +394,24 @@ void LidarPubHandler::ProcessCartesianHighPoint(RawPacket& pkt) {
       point.z =
           (raw[i].x * extrinsic_.rotation[2][0] + raw[i].y * extrinsic_.rotation[2][1] + raw[i].z * extrinsic_.rotation[2][2] + extrinsic_.trans[2]) / 1000.0;
     }
-    point.intensity   = raw[i].reflectivity;
+
+    const double dist = std::sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+
+    // skip frame measurements
+    if (dist < filters_params_.range_min) {
+      continue;
+    }
+
+    // skip dust detections
+    point.intensity = raw[i].reflectivity;
+    if (dist < filters_params_.intensity_range && raw[i].reflectivity < filters_params_.intensity_min_value) {
+      continue;
+    }
+
     point.line        = i % pkt.line_num;
     point.tag         = raw[i].tag;
     point.offset_time = pkt.time_stamp + i * pkt.point_interval;
+
     std::lock_guard<std::mutex> lock(mutex_);
     points_clouds_.push_back(point);
   }
@@ -423,7 +433,20 @@ void LidarPubHandler::ProcessCartesianLowPoint(RawPacket& pkt) {
       point.z =
           (raw[i].x * extrinsic_.rotation[2][0] + raw[i].y * extrinsic_.rotation[2][1] + raw[i].z * extrinsic_.rotation[2][2] + extrinsic_.trans[2]) / 100.0;
     }
-    point.intensity   = raw[i].reflectivity;
+
+    const double dist = std::sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+
+    // skip frame measurements
+    if (dist < filters_params_.range_min) {
+      continue;
+    }
+
+    // skip dust detections
+    point.intensity = raw[i].reflectivity;
+    if (dist < filters_params_.intensity_range && raw[i].reflectivity < filters_params_.intensity_min_value) {
+      continue;
+    }
+
     point.line        = i % pkt.line_num;
     point.tag         = raw[i].tag;
     point.offset_time = pkt.time_stamp + i * pkt.point_interval;
@@ -445,32 +468,32 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
 
   for (size_t i = 0; i < pkt.point_num; i++) {
 
-    double       radius = std::fabs(raw[i].depth * 0.001);
+    double       depth = std::fabs(double(raw[i].depth * 0.001));
     const double theta  = raw[i].theta * rad2deg;
     const double phi    = raw[i].phi * rad2deg;
 
-    const bool pt_invalid = radius < 0.001f;
+    const bool pt_invalid = depth < 0.001f;
 
     if (pt_invalid) {
 
-      radius = 1.0;
+      depth = 1.0;
 
     } else {
 
       // skip frame measurements
-      if (radius < filters_params_.range_min) {
+      if (depth < filters_params_.range_min) {
         continue;
       }
 
       // skip dust detections
-      if (radius < filters_params_.intensity_range && raw[i].reflectivity < filters_params_.intensity_min_value) {
+      if (depth < filters_params_.intensity_range && raw[i].reflectivity < filters_params_.intensity_min_value) {
         continue;
       }
     }
 
-    const double src_x = radius * sin(theta) * cos(phi);
-    const double src_y = radius * sin(theta) * sin(phi);
-    const double src_z = radius * cos(theta);
+    const double src_x = depth * sin(theta) * cos(phi);
+    const double src_y = depth * sin(theta) * sin(phi);
+    const double src_z = depth * cos(theta);
 
     PointXyzlt pt;
     if (pkt.extrinsic_enable) {

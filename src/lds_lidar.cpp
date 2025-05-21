@@ -184,8 +184,7 @@ bool LdsLidar::InitLivoxLidar() {
       lidar_param.param.y     = config.extrinsic_param.y;
       lidar_param.param.z     = config.extrinsic_param.z;
     }
-    pub_handler().AddLidarsExtParam(lidar_param);
-    pub_handler().AddParamsHandler(filters_params_);
+    pub_handler().AddLidarsParams(lidar_param, filters_params_);
   }
 
   SetLivoxLidarInfoChangeCallback(LivoxLidarCallback::LidarInfoChangeCallback, g_lds_ldiar);

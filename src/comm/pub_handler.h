@@ -91,8 +91,7 @@ public:
   void Init();
   void SetPointCloudConfig(const double publish_freq);
   void SetPointCloudsCallback(PointCloudsCallback cb, void* client_data);
-  void AddLidarsExtParam(LidarExtParameter& extrinsic_params);
-  void AddParamsHandler(const ParamsHandler &params);
+  void AddLidarsParams(LidarExtParameter& lidar_param, const ParamsHandler &params);
   void ClearAllLidarsExtrinsicParams();
   void SetImuDataCallback(ImuDataCallback cb, void* client_data);
 
@@ -132,6 +131,7 @@ private:
   std::map<uint32_t, std::vector<PointXyzlt>>          points_;
   std::map<uint32_t, std::vector<PointXyzlt>>          points_invalid_;
   std::map<uint32_t, LidarExtParameter>                lidar_extrinsics_;
+  std::map<uint32_t, ParamsHandler>                    lidar_params_;
   static std::atomic<bool>                             is_timestamp_sync_;
   uint16_t                                             lidar_listen_id_ = 0;
 
