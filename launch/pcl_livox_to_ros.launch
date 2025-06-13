@@ -18,7 +18,7 @@
   <arg if="$(eval arg('standalone') or arg('debug'))" name="nodelet_manager" value="" />
 
   <!-- Nodeleted -->
-  <arg name="nodelet_manager_name" default="$(arg UAV_NAME)_pcl_nodelet_manager" />
+  <arg name="nodelet_manager_name" default="$(arg UAV_NAME)_livox_manager" />
   <arg if="$(eval not arg('standalone') and not arg('debug'))" name="nodelet" value="load" />
   <arg if="$(eval not arg('standalone') and not arg('debug'))" name="nodelet_manager" value="$(arg nodelet_manager_name)" />
 
