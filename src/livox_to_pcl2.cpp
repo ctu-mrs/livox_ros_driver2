@@ -9,11 +9,7 @@ void LivoxPCLtoPCL2::onInit() {
   ros::NodeHandle nh = nodelet::Nodelet::getMTPrivateNodeHandle();
   ros::Time::waitForValid();
 
-  mrs_lib::SubscribeHandlerOptions shopts(nh);
-  shopts.node_name          = "LivoxPCLtoPCL2";
-  shopts.no_message_timeout = ros::Duration(5.0);
-
-  _sub_lidar_livox_pcl = mrs_lib::SubscribeHandler<livox_ros_driver2::CustomMsg>(shopts, "lidar_in", &LivoxPCLtoPCL2::lidarLivoxCallback, this);
+  _sub_lidar_livox_pcl = nh.subscribe("lidar_in", 1, &LivoxPCLtoPCL2::lidarLivoxCallback, this, ros::TransportHints().tcpNoDelay());
 
   _pub_lidar_pcl2 = nh.advertise<sensor_msgs::PointCloud2>("lidar_out", 1);
 
@@ -25,7 +21,7 @@ void LivoxPCLtoPCL2::onInit() {
 
 /* lidarLivoxCallback() //{ */
 // Convert livox_ros_driver2::CustomMsg to sensor_msgs::PointCloud2 message type
-void LivoxPCLtoPCL2::lidarLivoxCallback(const livox_ros_driver2::CustomMsg::ConstPtr msg) {
+void LivoxPCLtoPCL2::lidarLivoxCallback(const livox_ros_driver2::CustomMsg::ConstPtr& msg) {
 
   if (!is_initialized) {
     return;
