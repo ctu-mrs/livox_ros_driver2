@@ -2,7 +2,7 @@
 
   <!-- ======================= Parameters ======================= -->
   <arg name="UAV_NAME" default="$(env UAV_NAME)" />
-  <arg name="frame_id" default="$(arg UAV_NAME)/livox"/>
+  <arg name="frame_id" default="$(arg UAV_NAME)/livox_frame"/>
 
   <arg name="config"        default="$(find livox_ros_driver2)/config/MID360_config.json"/>
   <arg name="lvx_file_path" default="livox_test.lvx"/>
