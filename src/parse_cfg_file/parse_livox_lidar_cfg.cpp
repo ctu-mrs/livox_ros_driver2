@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "parse_livox_lidar_cfg.h"
+#include <parse_cfg_file/parse_livox_lidar_cfg.h>
 #include <iostream>
 
 namespace livox_ros {

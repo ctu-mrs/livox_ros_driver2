@@ -1,13 +1,19 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
+
   <name>livox_ros_driver2</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>The ROS device driver for Livox 3D LiDARs, for ROS2</description>
-  <maintainer email="dev@livoxtech.com">feng</maintainer>
+
+  <author email="dev@livoxtech.com">feng</author>
+  <maintainer email="tomas.baca@fel.cvut.cz">Tomas Baca</maintainer>
+
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
+
   <build_depend>rosidl_default_generators</build_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
 
@@ -20,12 +26,12 @@
   <depend>rcl_interfaces</depend>
   <depend>libpcl-all-dev</depend>
   <depend>livox-sdk2</depend>
+  <depend>mrs_lib</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
 
   <exec_depend>rosbag2</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
 
   <depend>git</depend>
   <depend>apr</depend>
@@ -33,4 +39,5 @@
   <export>
     <build_type>ament_cmake</build_type>
   </export>
+
 </package>

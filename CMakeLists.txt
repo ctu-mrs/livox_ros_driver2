@@ -1,21 +1,11 @@
-# Copyright(c) 2020 livoxtech limited.
-
 cmake_minimum_required(VERSION 3.14)
-if(POLICY CMP0144)
-  cmake_policy(SET CMP0144 NEW)
-endif()
-
 project(livox_ros_driver2)
 
-# Default to C99
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
+# set the correct standards
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake/modules")
 
@@ -28,21 +18,22 @@ include(cmake/version.cmake)
 project(${PROJECT_NAME} VERSION ${LIVOX_ROS_DRIVER2_VERSION} LANGUAGES CXX)
 message(STATUS "${PROJECT_NAME} version: ${LIVOX_ROS_DRIVER2_VERSION}")
 
-#---------------------------------------------------------------------------------------
-# Add ROS Version MACRO
-#---------------------------------------------------------------------------------------
 add_definitions(-DBUILDING_ROS2)
 
-# find dependencies
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
-find_package(PCL REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(builtin_interfaces REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
+SET(DEPENDENCIES
+  rclcpp
+  rclcpp_components
+  PCL
+  pcl_ros
+  std_msgs
+  builtin_interfaces
+  rosidl_default_generators
+  mrs_lib
+)
+
+foreach(DEP IN LISTS DEPENDENCIES)
+  find_package(${DEP} REQUIRED)
+endforeach()
 
 # check apr
 find_package(PkgConfig)
@@ -51,6 +42,8 @@ if (APR_FOUND)
   message(${APR_INCLUDE_DIRS})
   message(${APR_LIBRARIES})
 endif (APR_FOUND)
+
+find_package(PCL 1.8 REQUIRED)
 
 # generate custom msg headers
 set(LIVOX_INTERFACES livox_interfaces2)
@@ -61,23 +54,22 @@ rosidl_generate_interfaces(${LIVOX_INTERFACES}
   LIBRARY_NAME ${PROJECT_NAME}
 )
 
-## make sure the livox_lidar_sdk_shared library is installed
+# Livox SDK
 find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_shared.so /usr/local/lib REQUIRED)
 
-##
-find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR
-  NAMES "livox_lidar_api.h" "livox_lidar_def.h"
-  REQUIRED)
+find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR NAMES "livox_lidar_api.h" "livox_lidar_def.h" REQUIRED)
 
-## PCL library
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
+set(LIBRARIES
+  LivoxRosDriver2_Driver
+)
 
-# livox ros2 driver target
-ament_auto_add_library(${PROJECT_NAME} SHARED
+## --------------------------------------------------------------
+## |                           compile                          |
+## --------------------------------------------------------------
+
+add_library(LivoxRosDriver2_Driver SHARED
   src/livox_ros_driver2.cpp
   src/lddc.cpp
-  src/driver_node.cpp
   src/lds.cpp
   src/lds_lidar.cpp
 
@@ -95,24 +87,31 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   src/call_back/livox_lidar_callback.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${livox_sdk_INCLUDE_DIRS})
-
-rosidl_get_typesupport_target(cpp_typesupport_target
-${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
-target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
-
-# include file direcotry
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${PCL_INCLUDE_DIRS}
-  ${APR_INCLUDE_DIRS}
-  ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
-  ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
-  3rdparty
-  src
+ament_target_dependencies(LivoxRosDriver2_Driver
+  ${DEPENDENCIES}
 )
 
+target_include_directories(LivoxRosDriver2_Driver
+  INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(LivoxRosDriver2_Driver
+  PRIVATE
+    include
+    ${PCL_INCLUDE_DIRS}
+    ${APR_INCLUDE_DIRS}
+    ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
+    ${mrs_lib_INCLUDE_DIRS}
+    # ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
+target_link_libraries(LivoxRosDriver2_Driver "${cpp_typesupport_target}")
+
 # link libraries
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(LivoxRosDriver2_Driver
   ${LIVOX_LIDAR_SDK_LIBRARY}
   ${LIVOX_INTERFACE_TARGET}   # for custom msgs
   ${PPT_LIBRARY}
@@ -121,23 +120,40 @@ target_link_libraries(${PROJECT_NAME}
   ${APR_LIBRARIES}
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-  PLUGIN "livox_ros::DriverNode"
-  EXECUTABLE ${PROJECT_NAME}_node
+rclcpp_components_register_nodes(LivoxRosDriver2_Driver PLUGIN "livox_ros::DriverNode" EXECUTABLE LivoxRosDriver2_Driver)
+
+## --------------------------------------------------------------
+## |                           install                          |
+## --------------------------------------------------------------
+
+ament_export_libraries(
+  ${LIBRARIES}
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # uncomment the line when a copyright and license is not present in all source files
-  #set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-ament_auto_package(INSTALL_TO_SHARE
-  config
-  launch
+install(
+  TARGETS ${LIBRARIES}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+ament_export_targets(
+  export_${PROJECT_NAME} HAS_LIBRARY_TARGET
+)
+
+ament_export_dependencies(
+  ${DEPENDENCIES}
+)
+
+ament_package()

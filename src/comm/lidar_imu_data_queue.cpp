@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "lidar_imu_data_queue.h"
+#include <comm/lidar_imu_data_queue.h>
 
 namespace livox_ros {
 

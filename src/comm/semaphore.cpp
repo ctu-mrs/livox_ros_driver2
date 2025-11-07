@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "semaphore.h"
+#include <comm/semaphore.h>
 
 namespace livox_ros {
 

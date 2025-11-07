@@ -22,9 +22,9 @@
 // SOFTWARE.
 //
 
-#include "lidar_common_callback.h"
+#include <call_back/lidar_common_callback.h>
 
-#include "../lds_lidar.h"
+#include <lds_lidar.h>
 
 #include <string>
 

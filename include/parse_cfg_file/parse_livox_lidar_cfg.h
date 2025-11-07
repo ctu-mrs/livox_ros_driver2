@@ -22,25 +22,37 @@
 // SOFTWARE.
 //
 
-#include "driver_node.h"
-#include "lddc.h"
+#ifndef LIVOX_ROS_DRIVER_LIVOX_LIDAR_CFG_PARSER_H_
+#define LIVOX_ROS_DRIVER_LIVOX_LIDAR_CFG_PARSER_H_
+
+#include <comm/comm.h>
+#include <livox_lidar_def.h>
+
+#include <3rdparty/rapidjson/document.h>
+#include <3rdparty/rapidjson/filereadstream.h>
+#include <3rdparty/rapidjson/stringbuffer.h>
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace livox_ros {
+  
+class LivoxLidarConfigParser {
+ public:
+  explicit LivoxLidarConfigParser(const std::string& path)  : path_(path) {}
+  ~LivoxLidarConfigParser() {}
 
-DriverNode& DriverNode::GetNode() noexcept {
-  return *this;
-}
+  bool Parse(std::vector<UserLivoxLidarConfig> &lidar_configs);
 
-DriverNode::~DriverNode() {
-  lddc_ptr_->lds_->RequestExit();
-  exit_signal_.set_value();
-  pointclouddata_poll_thread_->join();
-  imudata_poll_thread_->join();
-}
+ private:
+  bool ParseUserConfigs(const rapidjson::Document &doc,
+                         std::vector<UserLivoxLidarConfig> &user_configs);
+  bool ParseExtrinsics(const rapidjson::Value &value, ExtParameter &param);
+
+  const std::string path_;
+};
 
 } // namespace livox_ros
 
-
-
-
-
+#endif // LIVOX_ROS_DRIVER_LIVOX_LIDAR_CFG_PARSER_H_

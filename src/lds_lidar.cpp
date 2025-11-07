@@ -22,33 +22,24 @@
 // SOFTWARE.
 //
 
-#include "lds_lidar.h"
+#include <lds_lidar.h>
 
 #include <stdio.h>
 #include <string.h>
-#include <memory>
-#include <mutex>
-#include <thread>
 
-#ifdef WIN32
-#include <winsock2.h>
-#include <ws2def.h>
-#pragma comment(lib, "Ws2_32.lib")
-#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#endif // WIN32
 
-#include "comm/comm.h"
-#include "comm/pub_handler.h"
+#include <comm/comm.h>
+#include <comm/pub_handler.h>
 
-#include "parse_cfg_file/parse_cfg_file.h"
-#include "parse_cfg_file/parse_livox_lidar_cfg.h"
+#include <parse_cfg_file/parse_cfg_file.h>
+#include <parse_cfg_file/parse_livox_lidar_cfg.h>
 
-#include "call_back/lidar_common_callback.h"
-#include "call_back/livox_lidar_callback.h"
+#include <call_back/lidar_common_callback.h>
+#include <call_back/livox_lidar_callback.h>
 
 using namespace std;
 

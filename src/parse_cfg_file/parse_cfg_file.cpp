@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "parse_cfg_file.h"
+#include <parse_cfg_file/parse_cfg_file.h>
 
 #include <iostream>
 #include <cstdio>

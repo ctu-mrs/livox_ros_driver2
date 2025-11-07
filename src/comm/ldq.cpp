@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ldq.h"
+#include <comm/ldq.h>
 
 namespace livox_ros {
 

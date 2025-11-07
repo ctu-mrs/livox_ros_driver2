@@ -22,13 +22,31 @@
 // SOFTWARE.
 //
 
-#ifndef ROS_HEADERS_H_
-#define ROS_HEADERS_H_
+#ifndef LIVOX_ROS_DRIVER_PARSE_CFG_FILE_H_
+#define LIVOX_ROS_DRIVER_PARSE_CFG_FILE_H_
 
-#ifdef BUILDING_ROS1
-#include "ros1_headers.h"
-#elif defined BUILDING_ROS2
-#include "ros2_headers.h"
-#endif
+#include <comm/comm.h>
 
-#endif // ROS_HEADERS_H_
+#include <3rdparty/rapidjson/document.h>
+#include <3rdparty/rapidjson/filereadstream.h>
+#include <3rdparty/rapidjson/stringbuffer.h>
+
+#include <string>
+#include <vector>
+
+namespace livox_ros {
+
+class ParseCfgFile {
+ public:
+  explicit ParseCfgFile(const std::string& path);
+  ~ParseCfgFile() {}
+
+  bool ParseSummaryInfo(LidarSummaryInfo& lidar_summary_info);
+  
+ private:
+  const std::string path_;
+};
+
+} // namespace livox_ros
+
+#endif // LIVOX_ROS_DRIVER_PARSE_CFG_FILE_H_

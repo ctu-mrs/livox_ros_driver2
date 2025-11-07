@@ -25,10 +25,14 @@
 #ifndef LIVOX_ROS_DRIVER2_LDDC_H_
 #define LIVOX_ROS_DRIVER2_LDDC_H_
 
-#include "include/livox_ros_driver2.h"
+#include <lds.h>
 
-#include "driver_node.h"
-#include "lds.h"
+#include <rclcpp/rclcpp.hpp>
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <livox_ros_driver2/msg/custom_point.hpp>
+#include <livox_ros_driver2/msg/custom_msg.hpp>
 
 namespace livox_ros {
 
@@ -88,7 +92,7 @@ class Lddc final {
 
   uint8_t GetTransferFormat(void) { return transfer_format_; }
   uint8_t IsMultiTopic(void) { return use_multi_topic_; }
-  void SetRosNode(livox_ros::DriverNode *node) { cur_node_ = node; }
+  void SetRosNode(rclcpp::Node::SharedPtr& node) { node_ = node; }
 
   // void SetRosPub(ros::Publisher *pub) { global_pub_ = pub; };  // NOT USED
   void SetPublishFrq(uint32_t frq) { publish_frq_ = frq; }
@@ -155,7 +159,7 @@ class Lddc final {
   PublisherPtr global_imu_pub_;
 #endif
 
-  livox_ros::DriverNode *cur_node_;
+  rclcpp::Node::SharedPtr node_;
 };
 
 }  // namespace livox_ros

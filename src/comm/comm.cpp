@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "comm/comm.h"
+#include <comm/comm.h>
 #include <string.h>
 #include <arpa/inet.h>
 
