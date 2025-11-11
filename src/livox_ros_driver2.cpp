@@ -34,6 +34,7 @@
 
 #include <mrs_lib/node.h>
 #include <mrs_lib/param_loader.h>
+#include <mrs_lib/dynparam_mgr.h>
 
 //}
 
@@ -60,19 +61,18 @@ private:
   std::shared_ptr<std::thread> imudata_poll_thread_;
   std::shared_future<void>     future_;
   std::promise<void>           exit_signal_;
+
+  struct DynParams_t
+  {
+    double radius_invalid;
+  };
+
+  std::shared_ptr<mrs_lib::DynparamMgr> dynparam_mgr_;
+  std::mutex                            mutex_drs_params_;
+  DynParams_t                           drs_params_;
+
+  void callbackRadiusInvalid(const double param_value);
 };
-
-/* shutdown() //{ */
-
-void DriverNode::shutdown() {
-
-  lddc_ptr_->lds_->RequestExit();
-  exit_signal_.set_value();
-  pointclouddata_poll_thread_->join();
-  imudata_poll_thread_->join();
-}
-
-//}
 
 /* constructor DriverNode //{ */
 
@@ -81,11 +81,10 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   node_  = this->this_node_ptr();
   clock_ = node_->get_clock();
 
-  RCLCPP_INFO(node_->get_logger(), "Livox Ros Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
+  RCLCPP_INFO(node_->get_logger(), "Livox ROS Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
 
   rclcpp::on_shutdown([this]() { this->shutdown(); });
 
-  /** Init default system parameter */
   bool        multi_topic;
   double      publish_freq;
   std::string frame_id;
@@ -93,10 +92,15 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
 
   mrs_lib::ParamLoader param_loader(node_);
 
+  dynparam_mgr_ = std::make_shared<mrs_lib::DynparamMgr>(node_, mutex_drs_params_);
+
   param_loader.loadParam("multi_topic", multi_topic);
-  param_loader.loadParam("publish_freq", publish_freq);
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("user_config_path", user_config_path);
+  param_loader.loadParam("publish_freq", publish_freq);
+
+  dynparam_mgr_->register_param("radius_invalid", &drs_params_.radius_invalid, mrs_lib::DynparamMgr::range_t<double>(1.0, 1000.0),
+                                (std::function<void(const double &)>)std::bind(&DriverNode::callbackRadiusInvalid, this, std::placeholders::_1));
 
   if (!param_loader.loadedSuccessfully()) {
     RCLCPP_ERROR(node_->get_logger(), "failed to load non-optional parameters!");
@@ -115,7 +119,7 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   future_ = exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, publish_freq, frame_id);
+  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id);
 
   RCLCPP_INFO(node_->get_logger(), "config file: %s", user_config_path.c_str());
 
@@ -134,6 +138,29 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   imudata_poll_thread_        = std::make_shared<std::thread>(&DriverNode::ImuDataPollThread, this);
 
   RCLCPP_INFO(node_->get_logger(), "initialized");
+}
+
+//}
+
+/* shutdown() //{ */
+
+void DriverNode::shutdown() {
+
+  lddc_ptr_->lds_->RequestExit();
+  exit_signal_.set_value();
+  pointclouddata_poll_thread_->join();
+  imudata_poll_thread_->join();
+}
+
+//}
+
+// | ------------------- dynparam callbacks ------------------- |
+
+/* callbackRadiusInvalid() //{ */
+
+void DriverNode::callbackRadiusInvalid(const double param_value) {
+
+  RCLCPP_INFO(node_->get_logger(), "desired invalid distance updated to %.3f", param_value);
 }
 
 //}

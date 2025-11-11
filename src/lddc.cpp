@@ -43,11 +43,10 @@ namespace livox_ros
 /* Lddc() //{ */
 
 /** Lidar Data Distribute Control--------------------------------------------*/
-Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double frq, std::string& frame_id)
-    : node_(node), use_multi_topic_(multi_topic), publish_frq_(frq), frame_id_(frame_id) {
+Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id)
+    : node_(node), use_multi_topic_(multi_topic), radius_invalid_(radius_invalid), frame_id_(frame_id) {
 
-  publish_period_ns_ = kNsPerSecond / publish_frq_;
-  lds_               = nullptr;
+  lds_ = nullptr;
 }
 
 //}
@@ -58,7 +57,7 @@ Lddc::~Lddc() {
 
   PrepareExit();
 
-  std::cout << "lddc destory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+  std::cout << "~Lddc() called" << std::endl;
 }
 
 //}
@@ -68,9 +67,7 @@ Lddc::~Lddc() {
 int Lddc::RegisterLds(Lds* lds) {
 
   if (lds_ == nullptr) {
-
     lds_ = lds;
-
     return 0;
   } else {
     return -1;
@@ -84,12 +81,12 @@ int Lddc::RegisterLds(Lds* lds) {
 void Lddc::DistributePointCloudData(void) {
 
   if (!lds_) {
-    std::cout << "lds is not registered" << std::endl;
+    RCLCPP_ERROR(node_->get_logger(), "lds_ is not registered");
     return;
   }
 
   if (lds_->IsRequestExit()) {
-    std::cout << "DistributePointCloudData is RequestExit" << std::endl;
+    RCLCPP_INFO(node_->get_logger(), "DistributePointCloudData(): isRequestExit()");
     return;
   }
 
@@ -116,12 +113,12 @@ void Lddc::DistributePointCloudData(void) {
 void Lddc::DistributeImuData(void) {
 
   if (!lds_) {
-    std::cout << "lds is not registered" << std::endl;
+    RCLCPP_ERROR(node_->get_logger(), "lds_ is not registered");
     return;
   }
 
   if (lds_->IsRequestExit()) {
-    std::cout << "DistributeImuData is RequestExit" << std::endl;
+    RCLCPP_INFO(node_->get_logger(), "DistributeImuData(): isRequestExit()");
     return;
   }
 
@@ -161,16 +158,18 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar) {
       QueuePop(p_queue, &pkg);
 
       if (pkg.points.empty()) {
-        printf("Publish point cloud2 failed, the pkg points is empty.\n");
+        RCLCPP_ERROR(node_->get_logger(), "Publish point cloud2 failed, the pkg points is empty.");
         continue;
       }
 
       {
         PointCloud2 cloud;
+        PointCloud2 cloud_invalid;
         uint64_t    timestamp = 0;
 
-        InitPointcloud2Msg(index, pkg, cloud, timestamp);
+        InitPointcloud2Msg(index, pkg, cloud, cloud_invalid, timestamp);
         PublishPointcloud2Data(index, timestamp, cloud);
+        PublishInvalidPointcloud2Data(index, timestamp, cloud_invalid);
       }
 
       {
@@ -256,35 +255,61 @@ void Lddc::InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud) {
   cloud.fields[6].name     = "timestamp";
   cloud.fields[6].count    = 1;
   cloud.fields[6].datatype = PointField::FLOAT64;
-  cloud.point_step         = sizeof(LivoxPointXyzrtlt);
+
+  cloud.point_step = sizeof(LivoxPointXyzrtlt);
 }
 
 //}
 
 /* InitPointcloud2Msg() //{ */
 
-void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp) {
+void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& cloud_invalid, uint64_t& timestamp) {
 
-  InitPointcloud2MsgHeader(index, cloud);
+  // normal cloud
+  {
+    InitPointcloud2MsgHeader(index, cloud);
 
-  cloud.point_step = sizeof(LivoxPointXyzrtlt);
+    cloud.point_step = sizeof(LivoxPointXyzrtlt);
 
-  cloud.width    = pkg.points_num;
-  cloud.row_step = cloud.width * cloud.point_step;
+    cloud.width    = pkg.points_num;
+    cloud.row_step = cloud.width * cloud.point_step;
 
-  cloud.is_bigendian = false;
-  cloud.is_dense     = true;
+    cloud.is_bigendian = false;
+    cloud.is_dense     = true;
 
-  if (!pkg.points.empty()) {
-    timestamp = pkg.base_time;
+    if (!pkg.points.empty()) {
+      timestamp = pkg.base_time;
+    }
+
+    cloud.header.stamp = rclcpp::Time(timestamp);
   }
 
-  cloud.header.stamp = rclcpp::Time(timestamp);
+  // invalid cloud
+  {
+    InitPointcloud2MsgHeader(index, cloud_invalid);
+
+    cloud_invalid.point_step = sizeof(LivoxPointXyzrtlt);
+
+    cloud_invalid.width    = pkg.points_invalid_num;
+    cloud_invalid.row_step = cloud_invalid.width * cloud_invalid.point_step;
+
+    cloud_invalid.is_bigendian = false;
+    cloud_invalid.is_dense     = true;
+
+    if (!pkg.points.empty()) {
+      timestamp = pkg.base_time;
+    }
+
+    cloud_invalid.header.stamp = rclcpp::Time(timestamp);
+  }
 
   std::vector<LivoxPointXyzrtlt> points;
+  std::vector<LivoxPointXyzrtlt> points_invalid;
 
   for (size_t i = 0; i < pkg.points_num; ++i) {
+
     LivoxPointXyzrtlt point;
+
     point.x            = pkg.points[i].x;
     point.y            = pkg.points[i].y;
     point.z            = pkg.points[i].z;
@@ -292,12 +317,30 @@ void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, Poi
     point.tag          = pkg.points[i].tag;
     point.line         = pkg.points[i].line;
     point.timestamp    = static_cast<double>(pkg.points[i].offset_time);
+
     points.push_back(std::move(point));
   }
 
-  cloud.data.resize(pkg.points_num * sizeof(LivoxPointXyzrtlt));
+  for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
 
+    LivoxPointXyzrtlt point;
+
+    point.x            = pkg.points_invalid[i].x;
+    point.y            = pkg.points_invalid[i].y;
+    point.z            = pkg.points_invalid[i].z;
+    point.reflectivity = pkg.points_invalid[i].intensity;
+    point.tag          = pkg.points_invalid[i].tag;
+    point.line         = pkg.points_invalid[i].line;
+    point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
+
+    points_invalid.push_back(std::move(point));
+  }
+
+  cloud.data.resize(pkg.points_num * sizeof(LivoxPointXyzrtlt));
   memcpy(cloud.data.data(), points.data(), pkg.points_num * sizeof(LivoxPointXyzrtlt));
+
+  cloud_invalid.data.resize(pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+  memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
 }
 
 //}
@@ -307,6 +350,17 @@ void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, Poi
 void Lddc::PublishPointcloud2Data(const uint8_t index, const uint64_t timestamp, const PointCloud2& cloud) {
 
   auto publisher_ptr = GetCurrentPcPublisher(index);
+
+  publisher_ptr->publish(cloud);
+}
+
+//}
+
+/* PublishInvalidPointcloud2Data() //{ */
+
+void Lddc::PublishInvalidPointcloud2Data(const uint8_t index, const uint64_t timestamp, const PointCloud2& cloud) {
+
+  auto publisher_ptr = GetCurrentInvalidPcPublisher(index);
 
   publisher_ptr->publish(cloud);
 }
@@ -342,7 +396,7 @@ void Lddc::InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t
   if (lds_->lidars_[index].lidar_type == kLivoxLidarType) {
     livox_msg.lidar_id = lds_->lidars_[index].handle;
   } else {
-    printf("Init custom msg lidar id failed, the index:%u.\n", index);
+    RCLCPP_ERROR(node_->get_logger(), "Init custom msg lidar id failed, the index: %u.", index);
     livox_msg.lidar_id = 0;
   }
 }
@@ -477,6 +531,54 @@ std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentPcPublis
     }
 
     return global_pc_pub_;
+  }
+}
+
+//}
+
+/* GetCurrentInvalidPcPublisher() //{ */
+
+std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentInvalidPcPublisher(uint8_t handle) {
+
+  /* uint32_t queue_size = kMinEthPacketQueueSize; */
+
+  if (use_multi_topic_) {
+
+    if (!private_invalid_pc_pubs_[handle]) {
+
+      std::stringstream ss;
+
+      ss << "~/lidar_" << lds_->lidars_[handle].handle << "/invalid_points";
+
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %d invalid PointCloud2 on topic '%s'", handle, ss.str().c_str());
+
+      mrs_lib::PublisherHandlerOptions opts;
+
+      opts.node = node_;
+      opts.qos  = rclcpp::SensorDataQoS();
+
+      private_invalid_pc_pubs_[handle] = std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, ss.str());
+    }
+
+    return private_invalid_pc_pubs_[handle];
+
+  } else {
+
+    if (!global_invalid_pc_pub_) {
+
+      std::string topic_name("~/invalid_points");
+
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for invalid PointCloud2 on topic '%s'", topic_name.c_str());
+
+      mrs_lib::PublisherHandlerOptions opts;
+
+      opts.node = node_;
+      opts.qos  = rclcpp::SensorDataQoS();
+
+      global_invalid_pc_pub_ = std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, topic_name);
+    }
+
+    return global_invalid_pc_pub_;
   }
 }
 

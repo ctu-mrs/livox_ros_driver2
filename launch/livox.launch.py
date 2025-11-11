@@ -101,6 +101,7 @@ def generate_launch_description():
         namespace=uav_name,
         parameters=[
             {"multi_topic": False},
+            {"invalid_distance": 30.0},
             {"publish_freq": 10.0},
             {"frame_id": [uav_name,"/livox"]},
             {"user_config_path": config},

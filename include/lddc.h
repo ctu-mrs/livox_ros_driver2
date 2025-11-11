@@ -42,14 +42,6 @@
 namespace livox_ros
 {
 
-/** Send pointcloud message Data to ros subscriber or save them in rosbag file */
-typedef enum
-{
-  kOutputToRos        = 0,
-  kOutputToRosBagFile = 1,
-} DestinationOfMessageOutput;
-
-/** Type-Definitions based on ROS versions */
 template <typename MessageT>
 using Publisher    = rclcpp::Publisher<MessageT>;
 using PublisherPtr = std::shared_ptr<rclcpp::PublisherBase>;
@@ -63,7 +55,7 @@ class DriverNode;
 
 class Lddc final {
 public:
-  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double frq, std::string& frame_id);
+  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id);
 
   ~Lddc();
 
@@ -72,9 +64,8 @@ public:
   void DistributeImuData(void);
   void PrepareExit(void);
 
-  // void SetRosPub(ros::Publisher *pub) { global_pub_ = pub; };  // NOT USED
-  void SetPublishFrq(uint32_t frq) {
-    publish_frq_ = frq;
+  void SetInvalidDistance(const double radius) {
+    radius_invalid_ = radius;
   }
 
 public:
@@ -87,8 +78,9 @@ private:
   void PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index);
 
   void InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud);
-  void InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp);
+  void InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& invalid_cloud, uint64_t& timestamp);
   void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
+  void PublishInvalidPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
 
   void InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t index);
   void FillPointsToCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg);
@@ -102,15 +94,16 @@ private:
   PublisherPtr CreatePublisher(uint8_t msg_type, std::string& topic_name, uint32_t queue_size);
 
   std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> GetCurrentPcPublisher(uint8_t index);
+  std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> GetCurrentInvalidPcPublisher(uint8_t index);
   std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>   GetCurrentCustomPublisher(uint8_t index);
   std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>      GetCurrentImuPublisher(uint8_t index);
 
 private:
   rclcpp::Node::SharedPtr node_;
 
-  bool     use_multi_topic_;
-  double   publish_frq_;
-  uint32_t publish_period_ns_;
+  bool use_multi_topic_;
+
+  std::atomic<double> radius_invalid_;
 
   std::string frame_id_;
 
@@ -120,10 +113,12 @@ private:
   /* PublisherPtr global_imu_pub_; */
 
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_pc_pubs_;
+  std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_invalid_pc_pubs_;
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>>   private_custom_pubs_;
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>>      private_imu_pubs_;
 
   std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> global_pc_pub_;
+  std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> global_invalid_pc_pub_;
   std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>   global_custom_pub_;
   std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>      global_imu_pub_;
 };
