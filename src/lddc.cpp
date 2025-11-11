@@ -43,8 +43,8 @@ namespace livox_ros
 /* Lddc() //{ */
 
 /** Lidar Data Distribute Control--------------------------------------------*/
-Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id)
-    : node_(node), use_multi_topic_(multi_topic), radius_invalid_(radius_invalid), frame_id_(frame_id) {
+Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid)
+    : node_(node), use_multi_topic_(multi_topic), radius_invalid_(radius_invalid), frame_id_(frame_id), publish_invalid_(publish_invalid) {
 
   lds_ = nullptr;
 }
@@ -164,12 +164,16 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar) {
 
       {
         PointCloud2 cloud;
+
         PointCloud2 cloud_invalid;
         uint64_t    timestamp = 0;
 
         InitPointcloud2Msg(index, pkg, cloud, cloud_invalid, timestamp);
         PublishPointcloud2Data(index, timestamp, cloud);
-        PublishInvalidPointcloud2Data(index, timestamp, cloud_invalid);
+
+        if (publish_invalid_) {
+          PublishInvalidPointcloud2Data(index, timestamp, cloud_invalid);
+        }
       }
 
       {
@@ -285,7 +289,8 @@ void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, Poi
   }
 
   // invalid cloud
-  {
+  if (publish_invalid_) {
+
     InitPointcloud2MsgHeader(index, cloud_invalid);
 
     cloud_invalid.point_step = sizeof(LivoxPointXyzrtlt);
@@ -321,26 +326,30 @@ void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, Poi
     points.push_back(std::move(point));
   }
 
-  for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
+  if (publish_invalid_) {
+    for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
 
-    LivoxPointXyzrtlt point;
+      LivoxPointXyzrtlt point;
 
-    point.x            = pkg.points_invalid[i].x;
-    point.y            = pkg.points_invalid[i].y;
-    point.z            = pkg.points_invalid[i].z;
-    point.reflectivity = pkg.points_invalid[i].intensity;
-    point.tag          = pkg.points_invalid[i].tag;
-    point.line         = pkg.points_invalid[i].line;
-    point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
+      point.x            = pkg.points_invalid[i].x;
+      point.y            = pkg.points_invalid[i].y;
+      point.z            = pkg.points_invalid[i].z;
+      point.reflectivity = pkg.points_invalid[i].intensity;
+      point.tag          = pkg.points_invalid[i].tag;
+      point.line         = pkg.points_invalid[i].line;
+      point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
 
-    points_invalid.push_back(std::move(point));
+      points_invalid.push_back(std::move(point));
+    }
   }
 
   cloud.data.resize(pkg.points_num * sizeof(LivoxPointXyzrtlt));
   memcpy(cloud.data.data(), points.data(), pkg.points_num * sizeof(LivoxPointXyzrtlt));
 
-  cloud_invalid.data.resize(pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
-  memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+  if (publish_invalid_) {
+    cloud_invalid.data.resize(pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+    memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+  }
 }
 
 //}

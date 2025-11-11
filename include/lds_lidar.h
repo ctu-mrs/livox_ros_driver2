@@ -49,7 +49,7 @@ class LdsLidar final : public Lds {
     return &lds_lidar;
   }
 
-  bool InitLdsLidar(const std::string& path_name);
+  bool InitLdsLidar(const std::string& path_name, const bool publish_invalid);
   bool Start();
 
   int DeInitLdsLidar(void);
@@ -82,6 +82,7 @@ class LdsLidar final : public Lds {
 
  private:
   std::string path_;
+  bool publish_invalid_;
   LidarSummaryInfo lidar_summary_info_;
 
   bool auto_connect_mode_;

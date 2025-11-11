@@ -86,6 +86,7 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   rclcpp::on_shutdown([this]() { this->shutdown(); });
 
   bool        multi_topic;
+  bool        publish_invalid;
   double      publish_freq;
   std::string frame_id;
   std::string user_config_path;
@@ -98,6 +99,7 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("user_config_path", user_config_path);
   param_loader.loadParam("publish_freq", publish_freq);
+  param_loader.loadParam("publish_invalid", publish_invalid);
 
   dynparam_mgr_->register_param("radius_invalid", &drs_params_.radius_invalid, mrs_lib::DynparamMgr::range_t<double>(1.0, 1000.0),
                                 (std::function<void(const double &)>)std::bind(&DriverNode::callbackRadiusInvalid, this, std::placeholders::_1));
@@ -119,14 +121,14 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   future_ = exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id);
+  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id, publish_invalid);
 
   RCLCPP_INFO(node_->get_logger(), "config file: %s", user_config_path.c_str());
 
   LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
   lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-  if ((read_lidar->InitLdsLidar(user_config_path))) {
+  if ((read_lidar->InitLdsLidar(user_config_path, publish_invalid))) {
     RCLCPP_INFO(node_->get_logger(), "succeeded to initialize LiDARs");
   } else {
     RCLCPP_ERROR(node_->get_logger(), "failed to initialize LiDARs");

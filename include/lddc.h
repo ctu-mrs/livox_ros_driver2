@@ -55,7 +55,7 @@ class DriverNode;
 
 class Lddc final {
 public:
-  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id);
+  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid);
 
   ~Lddc();
 
@@ -104,13 +104,8 @@ private:
   bool use_multi_topic_;
 
   std::atomic<double> radius_invalid_;
-
-  std::string frame_id_;
-
-  /* PublisherPtr private_pub_[kMaxSourceLidar]; */
-  /* PublisherPtr global_pub_; */
-  /* PublisherPtr private_imu_pub_[kMaxSourceLidar]; */
-  /* PublisherPtr global_imu_pub_; */
+  std::string         frame_id_;
+  std::atomic<double> publish_invalid_;
 
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_pc_pubs_;
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_invalid_pc_pubs_;
