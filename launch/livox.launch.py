@@ -102,7 +102,7 @@ def generate_launch_description():
         parameters=[
             {"multi_topic": False},
             {"publish_invalid": True},
-            {"invalid_distance": 30.0},
+            {"radius_invalid": 30.0},
             {"publish_freq": 10.0},
             {"frame_id": [uav_name,"/livox"]},
             {"user_config_path": config},
