@@ -22,9 +22,9 @@
 // SOFTWARE.
 //
 
-#include <iostream>
+/* includes //{ */
+
 #include <chrono>
-#include <vector>
 #include <csignal>
 #include <thread>
 
@@ -34,6 +34,8 @@
 
 #include <mrs_lib/node.h>
 #include <mrs_lib/param_loader.h>
+
+//}
 
 using namespace livox_ros;
 
@@ -60,6 +62,8 @@ private:
   std::promise<void>           exit_signal_;
 };
 
+/* shutdown() //{ */
+
 void DriverNode::shutdown() {
 
   lddc_ptr_->lds_->RequestExit();
@@ -67,6 +71,10 @@ void DriverNode::shutdown() {
   pointclouddata_poll_thread_->join();
   imudata_poll_thread_->join();
 }
+
+//}
+
+/* constructor DriverNode //{ */
 
 DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_driver_node", node_options) {
 
@@ -78,67 +86,48 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   rclcpp::on_shutdown([this]() { this->shutdown(); });
 
   /** Init default system parameter */
-  int         xfer_format  = kPointCloud2Msg;
-  int         multi_topic  = 0;
-  int         data_src     = kSourceRawLidar;
-  double      publish_freq = 10.0; /* Hz */
-  int         output_type  = kOutputToRos;
+  bool        multi_topic;
+  double      publish_freq;
   std::string frame_id;
+  std::string user_config_path;
 
   mrs_lib::ParamLoader param_loader(node_);
 
-  // OLD param declaration with defaults
-  /* node_->declare_parameter("xfer_format", xfer_format); */
-  /* node_->declare_parameter("multi_topic", 0); */
-  /* node_->declare_parameter("data_src", data_src); */
-  /* node_->declare_parameter("publish_freq", 10.0); */
-  /* node_->declare_parameter("output_data_type", output_type); */
-  /* node_->declare_parameter("frame_id", "frame_default"); */
-  /* node_->declare_parameter("user_config_path", "path_default"); */
-  /* node_->declare_parameter("cmdline_input_bd_code", "000000000000001"); */
-  /* node_->declare_parameter("lvx_file_path", "/home/livox/livox_test.lvx"); */
-
-  param_loader.loadParam("xfer_format", xfer_format);
   param_loader.loadParam("multi_topic", multi_topic);
-  param_loader.loadParam("data_src", data_src);
   param_loader.loadParam("publish_freq", publish_freq);
-  param_loader.loadParam("output_data_type", output_type);
   param_loader.loadParam("frame_id", frame_id);
+  param_loader.loadParam("user_config_path", user_config_path);
+
+  if (!param_loader.loadedSuccessfully()) {
+    RCLCPP_ERROR(node_->get_logger(), "failed to load non-optional parameters!");
+    rclcpp::shutdown();
+    exit(1);
+  }
 
   if (publish_freq > 100.0) {
     publish_freq = 100.0;
+    RCLCPP_WARN(node_->get_logger(), "capping publisher frequency to 100 Hz");
   } else if (publish_freq < 0.5) {
     publish_freq = 0.5;
-  } else {
-    publish_freq = publish_freq;
+    RCLCPP_WARN(node_->get_logger(), "capping publisher frequency to 0.5 Hz");
   }
 
   future_ = exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, data_src, output_type, publish_freq, frame_id);
-  lddc_ptr_->SetRosNode(node_);
+  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, publish_freq, frame_id);
 
-  if (data_src == kSourceRawLidar) {
-    RCLCPP_INFO(node_->get_logger(), "Data Source is raw lidar.");
+  RCLCPP_INFO(node_->get_logger(), "config file: %s", user_config_path.c_str());
 
-    std::string user_config_path;
-    param_loader.loadParam("user_config_path", user_config_path);
-    RCLCPP_INFO(node_->get_logger(), "Config file : %s", user_config_path.c_str());
+  LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
+  lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-    std::string cmdline_bd_code;
-    param_loader.loadParam("cmdline_input_bd_code", cmdline_bd_code);
-
-    LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
-    lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
-
-    if ((read_lidar->InitLdsLidar(user_config_path))) {
-      RCLCPP_INFO(node_->get_logger(), "Init lds lidar success!");
-    } else {
-      RCLCPP_INFO(node_->get_logger(), "Init lds lidar fail!");
-    }
+  if ((read_lidar->InitLdsLidar(user_config_path))) {
+    RCLCPP_INFO(node_->get_logger(), "succeeded to initialize LiDARs");
   } else {
-    RCLCPP_INFO(node_->get_logger(), "Invalid data src (%d), please check the launch file", data_src);
+    RCLCPP_ERROR(node_->get_logger(), "failed to initialize LiDARs");
+    rclcpp::shutdown();
+    exit(1);
   }
 
   pointclouddata_poll_thread_ = std::make_shared<std::thread>(&DriverNode::PointCloudDataPollThread, this);
@@ -147,13 +136,17 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   RCLCPP_INFO(node_->get_logger(), "initialized");
 }
 
+//}
+
 }  // namespace livox_ros
 
 /* PointCloudDataPollThread() //{ */
 
 void DriverNode::PointCloudDataPollThread() {
+
   std::future_status status;
   std::this_thread::sleep_for(std::chrono::seconds(3));
+
   do {
     lddc_ptr_->DistributePointCloudData();
     status = future_.wait_for(std::chrono::microseconds(0));
@@ -162,11 +155,13 @@ void DriverNode::PointCloudDataPollThread() {
 
 //}
 
-/* PointCloudDataPollThread() //{ */
+/* ImuDataPollThread() //{ */
 
 void DriverNode::ImuDataPollThread() {
+
   std::future_status status;
   std::this_thread::sleep_for(std::chrono::seconds(3));
+
   do {
     lddc_ptr_->DistributeImuData();
     status = future_.wait_for(std::chrono::microseconds(0));

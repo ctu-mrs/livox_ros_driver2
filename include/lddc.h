@@ -28,121 +28,106 @@
 #include <lds.h>
 
 #include <rclcpp/rclcpp.hpp>
+
 #include <pcl_conversions/pcl_conversions.h>
+
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+
 #include <livox_ros_driver2/msg/custom_point.hpp>
 #include <livox_ros_driver2/msg/custom_msg.hpp>
 
-namespace livox_ros {
+#include <mrs_lib/publisher_handler.h>
+
+namespace livox_ros
+{
 
 /** Send pointcloud message Data to ros subscriber or save them in rosbag file */
-typedef enum {
-  kOutputToRos = 0,
+typedef enum
+{
+  kOutputToRos        = 0,
   kOutputToRosBagFile = 1,
 } DestinationOfMessageOutput;
 
-/** The message type of transfer */
-typedef enum {
-  kPointCloud2Msg = 0,
-  kLivoxCustomMsg = 1,
-  kPclPxyziMsg = 2,
-  kLivoxImuMsg = 3,
-} TransferType;
-
 /** Type-Definitions based on ROS versions */
-template <typename MessageT> using Publisher = rclcpp::Publisher<MessageT>;
+template <typename MessageT>
+using Publisher    = rclcpp::Publisher<MessageT>;
 using PublisherPtr = std::shared_ptr<rclcpp::PublisherBase>;
-using PointCloud2 = sensor_msgs::msg::PointCloud2;
-using PointField = sensor_msgs::msg::PointField;
-using CustomMsg = livox_ros_driver2::msg::CustomMsg;
-using CustomPoint = livox_ros_driver2::msg::CustomPoint;
-using ImuMsg = sensor_msgs::msg::Imu;
+using PointCloud2  = sensor_msgs::msg::PointCloud2;
+using PointField   = sensor_msgs::msg::PointField;
+using CustomMsg    = livox_ros_driver2::msg::CustomMsg;
+using CustomPoint  = livox_ros_driver2::msg::CustomPoint;
+using ImuMsg       = sensor_msgs::msg::Imu;
 
 class DriverNode;
 
 class Lddc final {
- public:
-#ifdef BUILDING_ROS1
-  Lddc(int format, int multi_topic, int data_src, int output_type, double frq,
-      std::string &frame_id, bool lidar_bag, bool imu_bag);
-#elif defined BUILDING_ROS2
-  Lddc(int format, int multi_topic, int data_src, int output_type, double frq,
-      std::string &frame_id);
-#endif
+public:
+  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double frq, std::string& frame_id);
+
   ~Lddc();
 
-  int RegisterLds(Lds *lds);
+  int  RegisterLds(Lds* lds);
   void DistributePointCloudData(void);
   void DistributeImuData(void);
   void PrepareExit(void);
 
-  uint8_t GetTransferFormat(void) { return transfer_format_; }
-  uint8_t IsMultiTopic(void) { return use_multi_topic_; }
-  void SetRosNode(rclcpp::Node::SharedPtr& node) { node_ = node; }
-
   // void SetRosPub(ros::Publisher *pub) { global_pub_ = pub; };  // NOT USED
-  void SetPublishFrq(uint32_t frq) { publish_frq_ = frq; }
+  void SetPublishFrq(uint32_t frq) {
+    publish_frq_ = frq;
+  }
 
- public:
-  Lds *lds_;
+public:
+  Lds* lds_;
 
- private:
-  void PollingLidarPointCloudData(uint8_t index, LidarDevice *lidar);
-  void PollingLidarImuData(uint8_t index, LidarDevice *lidar);
-
-  void PublishPointcloud2(LidarDataQueue *queue, uint8_t index);
-  void PublishCustomPointcloud(LidarDataQueue *queue, uint8_t index);
+private:
+  void PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar);
+  void PollingLidarImuData(uint8_t index, LidarDevice* lidar);
 
   void PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index);
 
-  void InitPointcloud2MsgHeader(PointCloud2& cloud);
-  void InitPointcloud2Msg(const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp);
+  void InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud);
+  void InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp);
   void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
 
   void InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t index);
   void FillPointsToCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg);
   void PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t index);
 
-  void InitImuMsg(const ImuData& imu_data, ImuMsg& imu_msg, uint64_t& timestamp);
+  void InitImuMsg(const uint8_t index, const ImuData& imu_data, ImuMsg& imu_msg, uint64_t& timestamp);
 
-  void FillPointsToCustomMsg(CustomMsg& livox_msg, LivoxPointXyzrtlt* src_point, uint32_t num,
-      uint32_t offset_time, uint32_t point_interval, uint32_t echo_num);
+  void FillPointsToCustomMsg(CustomMsg& livox_msg, LivoxPointXyzrtlt* src_point, uint32_t num, uint32_t offset_time, uint32_t point_interval,
+                             uint32_t echo_num);
 
-#ifdef BUILDING_ROS2
-  PublisherPtr CreatePublisher(uint8_t msg_type, std::string &topic_name, uint32_t queue_size);
-#endif
+  PublisherPtr CreatePublisher(uint8_t msg_type, std::string& topic_name, uint32_t queue_size);
 
-  PublisherPtr GetCurrentPublisher(uint8_t index);
-  PublisherPtr GetCurrentImuPublisher(uint8_t index);
+  std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> GetCurrentPcPublisher(uint8_t index);
+  std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>   GetCurrentCustomPublisher(uint8_t index);
+  std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>      GetCurrentImuPublisher(uint8_t index);
 
- private:
-  uint8_t transfer_format_;
-  uint8_t use_multi_topic_;
-  uint8_t data_src_;
-  uint8_t output_type_;
-  double publish_frq_;
+private:
+  rclcpp::Node::SharedPtr node_;
+
+  bool     use_multi_topic_;
+  double   publish_frq_;
   uint32_t publish_period_ns_;
+
   std::string frame_id_;
 
-#ifdef BUILDING_ROS1
-  bool enable_lidar_bag_;
-  bool enable_imu_bag_;
-  PublisherPtr private_pub_[kMaxSourceLidar];
-  PublisherPtr global_pub_;
-  PublisherPtr private_imu_pub_[kMaxSourceLidar];
-  PublisherPtr global_imu_pub_;
-  rosbag::Bag *bag_;
-#elif defined BUILDING_ROS2
-  PublisherPtr private_pub_[kMaxSourceLidar];
-  PublisherPtr global_pub_;
-  PublisherPtr private_imu_pub_[kMaxSourceLidar];
-  PublisherPtr global_imu_pub_;
-#endif
+  /* PublisherPtr private_pub_[kMaxSourceLidar]; */
+  /* PublisherPtr global_pub_; */
+  /* PublisherPtr private_imu_pub_[kMaxSourceLidar]; */
+  /* PublisherPtr global_imu_pub_; */
 
-  rclcpp::Node::SharedPtr node_;
+  std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_pc_pubs_;
+  std::vector<std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>>   private_custom_pubs_;
+  std::vector<std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>>      private_imu_pubs_;
+
+  std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> global_pc_pub_;
+  std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>>   global_custom_pub_;
+  std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>>      global_imu_pub_;
 };
 
 }  // namespace livox_ros
 
-#endif // LIVOX_ROS_DRIVER2_LDDC_H_
+#endif  // LIVOX_ROS_DRIVER2_LDDC_H_
