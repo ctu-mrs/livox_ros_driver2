@@ -157,7 +157,7 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar) {
       StoragePacket pkg;
       QueuePop(p_queue, &pkg);
 
-      if (pkg.points.empty()) {
+      if (pkg.points.empty() && pkg.points_invalid.empty()) {
         RCLCPP_ERROR(node_->get_logger(), "Publish point cloud2 failed, the pkg points is empty.");
         continue;
       }
