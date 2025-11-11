@@ -132,12 +132,12 @@ bool LdsLidar::InitLivoxLidar() {
   LivoxLidarConfigParser            parser(path_);
   std::vector<UserLivoxLidarConfig> user_configs;
   if (!parser.Parse(user_configs)) {
-    std::cout << "failed to parse user-defined config" << std::endl;
+    std::cerr << "failed to parse user-defined config" << std::endl;
   }
 
   // SDK initialization
   if (!LivoxLidarSdkInit(path_.c_str())) {
-    std::cout << "Failed to init livox lidar sdk." << std::endl;
+    std::cerr << "Failed to init livox lidar sdk." << std::endl;
     return false;
   }
 
@@ -146,7 +146,7 @@ bool LdsLidar::InitLivoxLidar() {
     uint8_t index = 0;
     int8_t  ret   = g_lds_ldiar->cache_index_.GetFreeIndex(kLivoxLidarType, config.handle, index);
     if (ret != 0) {
-      std::cout << "failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
+      std::cerr << "failed to get free index, lidar ip: " << IpNumToString(config.handle) << std::endl;
       continue;
     }
     LidarDevice* p_lidar  = &(g_lds_ldiar->lidars_[index]);
@@ -160,11 +160,11 @@ bool LdsLidar::InitLivoxLidar() {
 
     if (publish_invalid_ && config.pcl_data_type != kLivoxLidarSphericalCoordinateData) {
 
-      std::cout << "Failed to init publishing of invalid points: pcl_data_type must be set to Spherical Coordinates (3)!" << std::endl;
-      
+      std::cerr << "Failed to init publishing of invalid points: pcl_data_type must be set to 3 (kLivoxLidarSphericalCoordinateData)!" << std::endl;
       return false;
+    }
 
-    } else if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
+    if (config.pcl_data_type == kLivoxLidarCartesianCoordinateLowData) {
 
       // temporary resolution
       lidar_param.param.roll  = config.extrinsic_param.roll;
@@ -173,14 +173,18 @@ bool LdsLidar::InitLivoxLidar() {
       lidar_param.param.x     = config.extrinsic_param.x / 10;
       lidar_param.param.y     = config.extrinsic_param.y / 10;
       lidar_param.param.z     = config.extrinsic_param.z / 10;
+
     } else {
+
       lidar_param.param.roll  = config.extrinsic_param.roll;
       lidar_param.param.pitch = config.extrinsic_param.pitch;
       lidar_param.param.yaw   = config.extrinsic_param.yaw;
       lidar_param.param.x     = config.extrinsic_param.x;
       lidar_param.param.y     = config.extrinsic_param.y;
       lidar_param.param.z     = config.extrinsic_param.z;
+
     }
+
     pub_handler().AddLidarsExtParam(lidar_param);
   }
 
