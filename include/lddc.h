@@ -78,7 +78,8 @@ private:
   void PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index);
 
   void InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud);
-  void InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& invalid_cloud, uint64_t& timestamp);
+  void InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp);
+  void InitInvalidPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud_invalid, uint64_t& timestamp);
   void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
   void PublishInvalidPointcloud2Data(const uint8_t index, uint64_t timestamp, const PointCloud2& cloud);
 

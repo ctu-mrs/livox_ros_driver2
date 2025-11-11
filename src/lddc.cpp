@@ -163,15 +163,18 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar) {
       }
 
       {
-        PointCloud2 cloud;
-
-        PointCloud2 cloud_invalid;
-        uint64_t    timestamp = 0;
-
-        InitPointcloud2Msg(index, pkg, cloud, cloud_invalid, timestamp);
-        PublishPointcloud2Data(index, timestamp, cloud);
+        {
+          uint64_t    timestamp = 0;
+          PointCloud2 cloud;
+          InitPointcloud2Msg(index, pkg, cloud, timestamp);
+          PublishPointcloud2Data(index, timestamp, cloud);
+        }
 
         if (publish_invalid_) {
+
+          uint64_t    timestamp = 0;
+          PointCloud2 cloud_invalid;
+          InitPointcloud2Msg(index, pkg, cloud_invalid, timestamp);
           PublishInvalidPointcloud2Data(index, timestamp, cloud_invalid);
         }
       }
@@ -267,49 +270,25 @@ void Lddc::InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud) {
 
 /* InitPointcloud2Msg() //{ */
 
-void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, PointCloud2& cloud_invalid, uint64_t& timestamp) {
+void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud, uint64_t& timestamp) {
 
-  // normal cloud
-  {
-    InitPointcloud2MsgHeader(index, cloud);
+  InitPointcloud2MsgHeader(index, cloud);
 
-    cloud.point_step = sizeof(LivoxPointXyzrtlt);
+  cloud.point_step = sizeof(LivoxPointXyzrtlt);
 
-    cloud.width    = pkg.points_num;
-    cloud.row_step = cloud.width * cloud.point_step;
+  cloud.width    = pkg.points_num;
+  cloud.row_step = cloud.width * cloud.point_step;
 
-    cloud.is_bigendian = false;
-    cloud.is_dense     = true;
+  cloud.is_bigendian = false;
+  cloud.is_dense     = true;
 
-    if (!pkg.points.empty()) {
-      timestamp = pkg.base_time;
-    }
-
-    cloud.header.stamp = rclcpp::Time(timestamp);
+  if (!pkg.points.empty()) {
+    timestamp = pkg.base_time;
   }
 
-  // invalid cloud
-  if (publish_invalid_) {
-
-    InitPointcloud2MsgHeader(index, cloud_invalid);
-
-    cloud_invalid.point_step = sizeof(LivoxPointXyzrtlt);
-
-    cloud_invalid.width    = pkg.points_invalid_num;
-    cloud_invalid.row_step = cloud_invalid.width * cloud_invalid.point_step;
-
-    cloud_invalid.is_bigendian = false;
-    cloud_invalid.is_dense     = true;
-
-    if (!pkg.points.empty()) {
-      timestamp = pkg.base_time;
-    }
-
-    cloud_invalid.header.stamp = rclcpp::Time(timestamp);
-  }
+  cloud.header.stamp = rclcpp::Time(timestamp);
 
   std::vector<LivoxPointXyzrtlt> points;
-  std::vector<LivoxPointXyzrtlt> points_invalid;
 
   for (size_t i = 0; i < pkg.points_num; ++i) {
 
@@ -326,30 +305,51 @@ void Lddc::InitPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, Poi
     points.push_back(std::move(point));
   }
 
-  if (publish_invalid_) {
-    for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
-
-      LivoxPointXyzrtlt point;
-
-      point.x            = pkg.points_invalid[i].x;
-      point.y            = pkg.points_invalid[i].y;
-      point.z            = pkg.points_invalid[i].z;
-      point.reflectivity = pkg.points_invalid[i].intensity;
-      point.tag          = pkg.points_invalid[i].tag;
-      point.line         = pkg.points_invalid[i].line;
-      point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
-
-      points_invalid.push_back(std::move(point));
-    }
-  }
-
   cloud.data.resize(pkg.points_num * sizeof(LivoxPointXyzrtlt));
   memcpy(cloud.data.data(), points.data(), pkg.points_num * sizeof(LivoxPointXyzrtlt));
+}
 
-  if (publish_invalid_) {
-    cloud_invalid.data.resize(pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
-    memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+//}
+
+/* InitInvalidPointcloud2Msg() //{ */
+
+void Lddc::InitInvalidPointcloud2Msg(const uint8_t index, const StoragePacket& pkg, PointCloud2& cloud_invalid, uint64_t& timestamp) {
+
+  InitPointcloud2MsgHeader(index, cloud_invalid);
+
+  cloud_invalid.point_step = sizeof(LivoxPointXyzrtlt);
+
+  cloud_invalid.width    = pkg.points_invalid_num;
+  cloud_invalid.row_step = cloud_invalid.width * cloud_invalid.point_step;
+
+  cloud_invalid.is_bigendian = false;
+  cloud_invalid.is_dense     = true;
+
+  if (!pkg.points_invalid.empty()) {
+    timestamp = pkg.base_time;
   }
+
+  cloud_invalid.header.stamp = rclcpp::Time(timestamp);
+
+  std::vector<LivoxPointXyzrtlt> points_invalid;
+
+  for (size_t i = 0; i < pkg.points_invalid_num; ++i) {
+
+    LivoxPointXyzrtlt point;
+
+    point.x            = pkg.points_invalid[i].x;
+    point.y            = pkg.points_invalid[i].y;
+    point.z            = pkg.points_invalid[i].z;
+    point.reflectivity = pkg.points_invalid[i].intensity;
+    point.tag          = pkg.points_invalid[i].tag;
+    point.line         = pkg.points_invalid[i].line;
+    point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
+
+    points_invalid.push_back(std::move(point));
+  }
+
+  cloud_invalid.data.resize(pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
+  memcpy(cloud_invalid.data.data(), points_invalid.data(), pkg.points_invalid_num * sizeof(LivoxPointXyzrtlt));
 }
 
 //}
