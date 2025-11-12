@@ -192,10 +192,13 @@ void PubHandler::CheckTimer(uint32_t id) {
     PointPacket& lidar_point = frame_.lidar_point[frame_.lidar_num];
     lidar_point.lidar_type = LidarProtoType::kLivoxLidarType;  // TODO:
     lidar_point.handle = id;
+
     lidar_point.points_num = points_[id].size();
     lidar_point.points_invalid_num = points_invalid_[id].size();
+
     lidar_point.points = points_[id].data();
     lidar_point.points_invalid = points_invalid_[id].data();
+
     frame_.lidar_num++;
     
     if (frame_.lidar_num != 0) {
@@ -218,20 +221,28 @@ void PubHandler::CheckTimer(uint32_t id) {
     for (auto &process_handler : lidar_process_handlers_) {
       frame_.base_time[frame_.lidar_num] = process_handler.second->GetLidarBaseTime();
       uint32_t handle = process_handler.first;
+
       points_[handle].clear();
       points_invalid_[handle].clear();
+
       process_handler.second->GetLidarPointClouds(points_[handle]);
-      process_handler.second->GetLidarPointCloudsInvalid(points_[handle]);
+      process_handler.second->GetLidarPointCloudsInvalid(points_invalid_[handle]);
+
       if (points_[handle].empty() && points_invalid_[handle].empty()) {
         continue;
       }
+
       PointPacket& lidar_point = frame_.lidar_point[frame_.lidar_num];
+
       lidar_point.lidar_type = LidarProtoType::kLivoxLidarType;  // TODO:
       lidar_point.handle = handle;
+
       lidar_point.points_num = points_[handle].size();
       lidar_point.points_invalid_num = points_invalid_[handle].size();
+
       lidar_point.points = points_[handle].data();
       lidar_point.points_invalid = points_invalid_[handle].data();
+
       frame_.lidar_num++;
     }
     PublishPointCloud();
@@ -304,7 +315,9 @@ void LidarPubHandler::GetLidarPointClouds(std::vector<PointXyzlt>& points_clouds
 }
 
 void LidarPubHandler::GetLidarPointCloudsInvalid(std::vector<PointXyzlt>& points_clouds_invalid) {
+
   std::lock_guard<std::mutex> lock(mutex_invalid_);
+
   points_clouds_invalid.swap(points_clouds_invalid_);
 }
 

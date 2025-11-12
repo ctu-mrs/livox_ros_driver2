@@ -84,6 +84,7 @@ void ResetQueue(LidarDataQueue *queue) {
 }
 
 bool QueuePrePop(LidarDataQueue *queue, StoragePacket *storage_packet) {
+
   if (queue == nullptr || storage_packet == nullptr) {
     // ROS_WARN("RosDriver Queue: Invalid pointer parameters.");
     return false;

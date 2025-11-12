@@ -174,7 +174,7 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice* lidar) {
 
           uint64_t    timestamp = 0;
           PointCloud2 cloud_invalid;
-          InitPointcloud2Msg(index, pkg, cloud_invalid, timestamp);
+          InitInvalidPointcloud2Msg(index, pkg, cloud_invalid, timestamp);
           PublishInvalidPointcloud2Data(index, timestamp, cloud_invalid);
         }
       }
