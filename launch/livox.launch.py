@@ -67,30 +67,55 @@ def generate_launch_description():
 
     # #} end of standalone
 
-    # #{ custom_config
+    # #{ json_config
 
-    config = LaunchConfiguration('config')
+    json_config = LaunchConfiguration('json_config')
 
     # this adds the args to the list of args available for this launch files
     # these args can be listed at runtime using -s flag
     # default_value is required to if the arg is supposed to be optional at launch time
     ld.add_action(DeclareLaunchArgument(
-        'config',
+        'json_config',
         default_value=this_pkg_path+"/config/mid360.json",
         description="Path to the json configuration file. The path can be absolute, starting with '/' or relative to the current working directory",
         ))
 
     # behaviour:
-    #     config == "" => config: ""
-    #     config == "/<path>" => config: "/<path>"
-    #     config == "<path>" => config: "$(pwd)/<path>"
-    config = IfElseSubstitution(
-            condition=PythonExpression(['"', config, '" != "" and ', 'not "', config, '".startswith("/")']),
-            if_value=PathJoinSubstitution([EnvironmentVariable('PWD'), config]),
-            else_value=config
+    #     json_config == "" => json_config: ""
+    #     json_config == "/<path>" => json_config: "/<path>"
+    #     json_config == "<path>" => json_config: "$(pwd)/<path>"
+    json_config = IfElseSubstitution(
+            condition=PythonExpression(['"', json_config, '" != "" and ', 'not "', json_config, '".startswith("/")']),
+            if_value=PathJoinSubstitution([EnvironmentVariable('PWD'), json_config]),
+            else_value=json_config
             )
 
-    # #} end of custom_config
+    # #} end of config
+
+    # #{ custom_config
+
+    custom_config = LaunchConfiguration('custom_config')
+
+    # this adds the args to the list of args available for this launch files
+    # these args can be listed at runtime using -s flag
+    # default_value is required to if the arg is supposed to be optional at launch time
+    ld.add_action(DeclareLaunchArgument(
+        'custom_config',
+        default_value=this_pkg_path+"/config/mid360.json",
+        description="Path to the json configuration file. The path can be absolute, starting with '/' or relative to the current working directory",
+        ))
+
+    # behaviour:
+    #     custom_config == "" => custom_config: ""
+    #     custom_config == "/<path>" => custom_config: "/<path>"
+    #     custom_config == "<path>" => custom_config: "$(pwd)/<path>"
+    custom_config = IfElseSubstitution(
+            condition=PythonExpression(['"', custom_config, '" != "" and ', 'not "', custom_config, '".startswith("/")']),
+            if_value=PathJoinSubstitution([EnvironmentVariable('PWD'), custom_config]),
+            else_value=custom_config
+            )
+
+    # #} end of config
 
     # #{ node
 
@@ -100,12 +125,10 @@ def generate_launch_description():
         name='livox',
         namespace=uav_name,
         parameters=[
-            {"multi_topic": False},
-            {"publish_invalid": True},
-            {"radius_invalid": 30.0},
-            {"publish_freq": 10.0},
             {"frame_id": [uav_name,"/livox"]},
-            {"user_config_path": config},
+            {"json_config": json_config},
+            {"ros_config": this_pkg_path+"/config/default.yaml"},
+            {"custom_config": custom_config},
         ]
     )
 

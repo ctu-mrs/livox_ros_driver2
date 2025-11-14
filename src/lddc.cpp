@@ -337,13 +337,16 @@ void Lddc::InitInvalidPointcloud2Msg(const uint8_t index, const StoragePacket& p
 
     LivoxPointXyzrtlt point;
 
-    point.x            = pkg.points_invalid[i].x;
-    point.y            = pkg.points_invalid[i].y;
-    point.z            = pkg.points_invalid[i].z;
+    // it is comming in as a unit vector
+    point.x = pkg.points_invalid[i].x * radius_invalid_;
+    point.y = pkg.points_invalid[i].y * radius_invalid_;
+    point.z = pkg.points_invalid[i].z * radius_invalid_;
+
     point.reflectivity = pkg.points_invalid[i].intensity;
     point.tag          = pkg.points_invalid[i].tag;
     point.line         = pkg.points_invalid[i].line;
-    point.timestamp    = static_cast<double>(pkg.points_invalid[i].offset_time);
+
+    point.timestamp = static_cast<double>(pkg.points_invalid[i].offset_time);
 
     points_invalid.push_back(std::move(point));
   }

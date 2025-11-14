@@ -89,15 +89,49 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   bool        publish_invalid;
   double      publish_freq;
   std::string frame_id;
-  std::string user_config_path;
+  std::string json_config;
 
   mrs_lib::ParamLoader param_loader(node_);
 
+  // load custom config
+
+  std::string custom_config_path;
+  param_loader.loadParam("custom_config", custom_config_path);
+
+  if (custom_config_path != "") {
+    RCLCPP_INFO(node_->get_logger(), "loading custom config '%s", custom_config_path.c_str());
+    bool succ = param_loader.addYamlFile(custom_config_path);
+
+    if (!succ) {
+      RCLCPP_ERROR(node_->get_logger(), "failed to load custom config");
+      rclcpp::shutdown();
+      exit(1);
+    }
+  }
+
+  // load ros config
+
+  std::string ros_config_path;
+  param_loader.loadParam("ros_config", ros_config_path);
+
+  if (ros_config_path != "") {
+    RCLCPP_INFO(node_->get_logger(), "loading ros config config '%s", ros_config_path.c_str());
+    bool succ = param_loader.addYamlFile(ros_config_path);
+
+    if (!succ) {
+      RCLCPP_ERROR(node_->get_logger(), "failed to load ros config");
+      rclcpp::shutdown();
+      exit(1);
+    }
+  }
+
   dynparam_mgr_ = std::make_shared<mrs_lib::DynparamMgr>(node_, mutex_drs_params_);
+
+  dynparam_mgr_->get_param_provider().copyYamls(param_loader.getParamProvider());
 
   param_loader.loadParam("multi_topic", multi_topic);
   param_loader.loadParam("frame_id", frame_id);
-  param_loader.loadParam("user_config_path", user_config_path);
+  param_loader.loadParam("json_config", json_config);
   param_loader.loadParam("publish_freq", publish_freq);
   param_loader.loadParam("publish_invalid", publish_invalid);
 
@@ -123,12 +157,12 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   /** Lidar data distribute control and lidar data source set */
   lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id, publish_invalid);
 
-  RCLCPP_INFO(node_->get_logger(), "config file: %s", user_config_path.c_str());
+  RCLCPP_INFO(node_->get_logger(), "config file: %s", json_config.c_str());
 
   LdsLidar *read_lidar = LdsLidar::GetInstance(publish_freq);
   lddc_ptr_->RegisterLds(static_cast<Lds *>(read_lidar));
 
-  if ((read_lidar->InitLdsLidar(user_config_path, publish_invalid))) {
+  if ((read_lidar->InitLdsLidar(json_config, publish_invalid))) {
     RCLCPP_INFO(node_->get_logger(), "succeeded to initialize LiDARs");
   } else {
     RCLCPP_ERROR(node_->get_logger(), "failed to initialize LiDARs");
