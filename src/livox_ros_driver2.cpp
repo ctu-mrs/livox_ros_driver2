@@ -72,6 +72,8 @@ private:
   DynParams_t                           drs_params_;
 
   void callbackRadiusInvalid(const double param_value);
+
+  std::map<unsigned int, std::string> map_aliases_;
 };
 
 /* constructor DriverNode //{ */
@@ -129,7 +131,26 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
 
   dynparam_mgr_->get_param_provider().copyYamls(param_loader.getParamProvider());
 
-  param_loader.loadParam("multi_topic", multi_topic);
+  param_loader.loadParam("multi_topic/enabled", multi_topic);
+
+  if (multi_topic) {
+
+    std::vector<long int>    map_handles;
+    std::vector<std::string> map_aliases;
+    param_loader.loadParam("multi_topic/alias_map/handles", map_handles);
+    param_loader.loadParam("multi_topic/alias_map/aliases", map_aliases);
+
+    if (map_handles.size() != map_aliases.size()) {
+      RCLCPP_ERROR(node_->get_logger(), "the alias and handle list must have the same number of elements!");
+      rclcpp::shutdown();
+      exit(1);
+    }
+
+    for (size_t i = 0; i < map_handles.size(); i++) {
+      map_aliases_[map_handles.at(i)] = map_aliases.at(i);
+    }
+  }
+
   param_loader.loadParam("frame_id", frame_id);
   param_loader.loadParam("json_config", json_config);
   param_loader.loadParam("publish_freq", publish_freq);
@@ -155,7 +176,7 @@ DriverNode::DriverNode(rclcpp::NodeOptions node_options) : mrs_lib::Node("livox_
   future_ = exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id, publish_invalid);
+  lddc_ptr_ = std::make_unique<Lddc>(node_, multi_topic, drs_params_.radius_invalid, frame_id, publish_invalid, map_aliases_);
 
   RCLCPP_INFO(node_->get_logger(), "config file: %s", json_config.c_str());
 

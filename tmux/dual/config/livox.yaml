@@ -1,0 +1,9 @@
+multi_topic:
+
+  enabled: true
+  
+  alias_map:
+
+    handles: [2013374656, 2801903808]
+    aliases: ["left", "right"]
+

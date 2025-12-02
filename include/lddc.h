@@ -55,7 +55,8 @@ class DriverNode;
 
 class Lddc final {
 public:
-  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid);
+  Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid,
+       std::map<unsigned int, std::string>& alias_map);
 
   ~Lddc();
 
@@ -107,6 +108,11 @@ private:
   std::atomic<double> radius_invalid_;
   std::string         frame_id_;
   std::atomic<double> publish_invalid_;
+
+  std::map<unsigned int, std::string> map_aliases_;
+  std::mutex                          mutex_map_aliases_;
+
+  std::string getLidarAlias(const unsigned int handle);
 
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_pc_pubs_;
   std::vector<std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>>> private_invalid_pc_pubs_;

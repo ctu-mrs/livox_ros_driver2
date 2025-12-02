@@ -16,6 +16,7 @@ from launch.substitutions import (
         EnvironmentVariable,
         )
 import launch
+import sys
 
 def generate_launch_description():
 
@@ -117,12 +118,27 @@ def generate_launch_description():
 
     # #} end of config
 
+    # #{ node_name
+
+    node_name = LaunchConfiguration('node_name')
+
+    # this adds the args to the list of args available for this launch files
+    # these args can be listed at runtime using -s flag
+    # default_value is required to if the arg is supposed to be optional at launch time
+    ld.add_action(DeclareLaunchArgument(
+        'node_name',
+        default_value="livox",
+        description="Default node's name.",
+        ))
+
+    # #} end of config
+
     # #{ node
 
     node = ComposableNode(
         package='livox_ros_driver2',
         plugin='livox_ros::DriverNode',
-        name='livox',
+        name=node_name,
         namespace=uav_name,
         parameters=[
             {"frame_id": [uav_name,"/livox"]},
@@ -146,7 +162,7 @@ def generate_launch_description():
 
     standalone_container = ComposableNodeContainer(
         namespace=uav_name,
-        name=namespace+'_livox_container',
+        name=[namespace,'_',node_name,'_container'],
         package='rclcpp_components',
         executable='component_container_mt',
         output="screen",
