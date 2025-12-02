@@ -43,8 +43,14 @@ namespace livox_ros
 /* Lddc() //{ */
 
 /** Lidar Data Distribute Control--------------------------------------------*/
-Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid)
-    : node_(node), use_multi_topic_(multi_topic), radius_invalid_(radius_invalid), frame_id_(frame_id), publish_invalid_(publish_invalid) {
+Lddc::Lddc(rclcpp::Node::SharedPtr node, int multi_topic, double radius_invalid, std::string& frame_id, bool publish_invalid,
+           std::map<unsigned int, std::string>& alias_map)
+    : node_(node),
+      use_multi_topic_(multi_topic),
+      radius_invalid_(radius_invalid),
+      frame_id_(frame_id),
+      publish_invalid_(publish_invalid),
+      map_aliases_(alias_map) {
 
   lds_ = nullptr;
 }
@@ -224,7 +230,7 @@ void Lddc::InitPointcloud2MsgHeader(const uint8_t index, PointCloud2& cloud) {
   std::stringstream ss;
 
   if (use_multi_topic_) {
-    ss << frame_id_ << "_" << index;
+    ss << frame_id_ << "_" << getLidarAlias(lds_->lidars_[index].handle);
   } else {
     ss << frame_id_;
   }
@@ -386,7 +392,7 @@ void Lddc::InitCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg, uint8_t
   std::stringstream ss;
 
   if (use_multi_topic_) {
-    ss << frame_id_ << "_" << index;
+    ss << frame_id_ << "_" << getLidarAlias(lds_->lidars_[index].handle);
   } else {
     ss << frame_id_;
   }
@@ -458,7 +464,7 @@ void Lddc::InitImuMsg(uint8_t index, const ImuData& imu_data, ImuMsg& imu_msg, u
   std::stringstream ss;
 
   if (use_multi_topic_) {
-    ss << frame_id_ << "_" << index;
+    ss << frame_id_ << "_" << getLidarAlias(lds_->lidars_[index].handle);
   } else {
     ss << frame_id_;
   }
@@ -502,29 +508,31 @@ void Lddc::PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index
 
 /* GetCurrentPcPublisher() //{ */
 
-std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentPcPublisher(uint8_t handle) {
+std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentPcPublisher(uint8_t index) {
 
   /* uint32_t queue_size = kMinEthPacketQueueSize; */
 
   if (use_multi_topic_) {
 
-    if (!private_pc_pubs_[handle]) {
+    std::string alias = getLidarAlias(lds_->lidars_[index].handle);
+
+    if (private_pc_pubs_.size() <= index) {
 
       std::stringstream ss;
 
-      ss << "~/lidar_" << lds_->lidars_[handle].handle << "/points";
+      ss << "~/lidar_" << alias << "/points";
 
-      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %d PointCloud2 on topic '%s'", handle, ss.str().c_str());
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %s PointCloud2 on topic '%s'", alias.c_str(), ss.str().c_str());
 
       mrs_lib::PublisherHandlerOptions opts;
 
       opts.node = node_;
       opts.qos  = rclcpp::SensorDataQoS();
 
-      private_pc_pubs_[handle] = std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, ss.str());
+      private_pc_pubs_.push_back(std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, ss.str()));
     }
 
-    return private_pc_pubs_[handle];
+    return private_pc_pubs_[index];
 
   } else {
 
@@ -550,29 +558,31 @@ std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentPcPublis
 
 /* GetCurrentInvalidPcPublisher() //{ */
 
-std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentInvalidPcPublisher(uint8_t handle) {
+std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentInvalidPcPublisher(uint8_t index) {
 
   /* uint32_t queue_size = kMinEthPacketQueueSize; */
 
   if (use_multi_topic_) {
 
-    if (!private_invalid_pc_pubs_[handle]) {
+    std::string alias = getLidarAlias(lds_->lidars_[index].handle);
+
+    if (private_invalid_pc_pubs_.size() <= index) {
 
       std::stringstream ss;
 
-      ss << "~/lidar_" << lds_->lidars_[handle].handle << "/invalid_points";
+      ss << "~/lidar_" << alias << "/invalid_points";
 
-      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %d invalid PointCloud2 on topic '%s'", handle, ss.str().c_str());
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %s invalid PointCloud2 on topic '%s'", alias.c_str(), ss.str().c_str());
 
       mrs_lib::PublisherHandlerOptions opts;
 
       opts.node = node_;
       opts.qos  = rclcpp::SensorDataQoS();
 
-      private_invalid_pc_pubs_[handle] = std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, ss.str());
+      private_invalid_pc_pubs_.push_back(std::make_shared<mrs_lib::PublisherHandler<PointCloud2>>(opts, ss.str()));
     }
 
-    return private_invalid_pc_pubs_[handle];
+    return private_invalid_pc_pubs_[index];
 
   } else {
 
@@ -598,29 +608,31 @@ std::shared_ptr<mrs_lib::PublisherHandler<PointCloud2>> Lddc::GetCurrentInvalidP
 
 /* GetCurrentCustomPublisher() //{ */
 
-std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>> Lddc::GetCurrentCustomPublisher(uint8_t handle) {
+std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>> Lddc::GetCurrentCustomPublisher(uint8_t index) {
 
   /* uint32_t queue_size = kMinEthPacketQueueSize; */
 
   if (use_multi_topic_) {
 
-    if (!private_custom_pubs_[handle]) {
+    std::string alias = getLidarAlias(lds_->lidars_[index].handle);
+
+    if (private_custom_pubs_.size() <= index) {
 
       std::stringstream ss;
 
-      ss << "~/lidar_" << lds_->lidars_[handle].handle << "/custom";
+      ss << "~/lidar_" << alias << "/custom";
 
-      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %d CustomMsg on topic '%s'", handle, ss.str().c_str());
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %s CustomMsg on topic '%s'", alias.c_str(), ss.str().c_str());
 
       mrs_lib::PublisherHandlerOptions opts;
 
       opts.node = node_;
       opts.qos  = rclcpp::SensorDataQoS();
 
-      private_custom_pubs_[handle] = std::make_shared<mrs_lib::PublisherHandler<CustomMsg>>(opts, ss.str());
+      private_custom_pubs_.push_back(std::make_shared<mrs_lib::PublisherHandler<CustomMsg>>(opts, ss.str()));
     }
 
-    return private_custom_pubs_[handle];
+    return private_custom_pubs_[index];
 
   } else {
 
@@ -646,29 +658,31 @@ std::shared_ptr<mrs_lib::PublisherHandler<CustomMsg>> Lddc::GetCurrentCustomPubl
 
 /* GetCurrentImuPublisher() //{ */
 
-std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>> Lddc::GetCurrentImuPublisher(uint8_t handle) {
+std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>> Lddc::GetCurrentImuPublisher(uint8_t index) {
 
   /* uint32_t queue_size = kMinEthPacketQueueSize; */
 
   if (use_multi_topic_) {
 
-    if (!private_imu_pubs_[handle]) {
+    std::string alias = getLidarAlias(lds_->lidars_[index].handle);
+
+    if (private_imu_pubs_.size() <= index) {
 
       std::stringstream ss;
 
-      ss << "~/lidar_" << lds_->lidars_[handle].handle << "/imu";
+      ss << "~/lidar_" << alias << "/imu";
 
-      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %d IMU on topic '%s'", handle, ss.str().c_str());
+      RCLCPP_INFO(node_->get_logger(), "creating publisher for lidar %s IMU on topic '%s'", alias.c_str(), ss.str().c_str());
 
       mrs_lib::PublisherHandlerOptions opts;
 
       opts.node = node_;
       opts.qos  = rclcpp::SensorDataQoS();
 
-      private_imu_pubs_[handle] = std::make_shared<mrs_lib::PublisherHandler<ImuMsg>>(opts, ss.str());
+      private_imu_pubs_.push_back(std::make_shared<mrs_lib::PublisherHandler<ImuMsg>>(opts, ss.str()));
     }
 
-    return private_imu_pubs_[handle];
+    return private_imu_pubs_[index];
 
   } else {
 
@@ -685,6 +699,31 @@ std::shared_ptr<mrs_lib::PublisherHandler<ImuMsg>> Lddc::GetCurrentImuPublisher(
     }
 
     return global_imu_pub_;
+  }
+}
+
+//}
+
+/* getLidarAlias() //{ */
+
+std::string Lddc::getLidarAlias(const unsigned int handle) {
+
+  std::scoped_lock lock(mutex_map_aliases_);
+
+  auto id_from_map = map_aliases_.find(handle);
+
+  // not found
+  if (id_from_map == map_aliases_.end()) {
+
+    std::stringstream ss;
+
+    ss << handle;
+
+    return ss.str();
+
+  } else {
+
+    return id_from_map->second;
   }
 }
 

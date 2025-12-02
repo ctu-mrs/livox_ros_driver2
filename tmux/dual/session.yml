@@ -1,0 +1,24 @@
+# do not modify these
+root: ./
+name: simulation
+socket_name: mrs
+attach: false
+tmux_options: -f /etc/ctu-mrs/tmux.conf
+# you can modify these
+startup_window: livox
+pre_window: export UAV_NAME=uav1;
+            export USE_SIM_TIME="false";
+            export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+windows:
+  - router:
+      layout: tiled
+      panes:
+        - ros2 run rmw_zenoh_cpp rmw_zenohd
+  - livox:
+      layout: tiled
+      panes:
+        - ros2 launch livox_ros_driver2 livox.launch.py custom_config:=./config/livox.yaml json_config:=./config/dual.json
+  - rviz:
+      layout: tiled
+      panes:
+        - ros2 run rviz2 rviz2 -d ./rviz.rviz
