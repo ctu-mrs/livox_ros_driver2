@@ -17,11 +17,7 @@ windows:
   - livox:
       layout: tiled
       panes:
-        - ros2 launch livox_ros_driver2 livox.launch.py custom_config:=./config/livox.yaml json_config:=./config/dual.json
-  - tf:
-      layout: tiled
-      panes:
-        - ./config/livox_tf.sh
+        - ros2 launch livox_ros_driver2 livox.launch.py custom_config:=./config/livox.yaml json_config:=./config/mid360_1.json
   - rviz:
       layout: tiled
       panes:
