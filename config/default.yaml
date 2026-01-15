@@ -9,4 +9,4 @@ multi_topic:
 
 publish_invalid: true
 radius_invalid: 1.0 # [m]
-publish_freq: 10.0 # [Hz]
+publish_freq: 100.0 # [Hz]
