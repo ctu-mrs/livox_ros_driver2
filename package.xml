@@ -25,6 +25,7 @@
   <depend>pcl_conversions</depend>
   <depend>rcl_interfaces</depend>
   <depend>libpcl-all-dev</depend>
+  <depend>pcl_ros</depend>
   <depend>livox-sdk2</depend>
   <depend>mrs_lib</depend>
   <depend>launch</depend>
